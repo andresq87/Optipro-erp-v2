@@ -1,20 +1,37 @@
-# ÓpticaPro ERP — Backend
+# ÓpticaPro ERP — Backend + Front-end
 
 API REST en Node.js + Express + SQLite (módulo `node:sqlite` incluido en Node.js — no requiere
-instalar compiladores ni Visual Studio) que le da funcionalidad real al front-end del ERP.
+instalar compiladores ni Visual Studio) que le da funcionalidad real al ERP. El propio servidor
+también sirve el front-end (carpeta `public/`), así que **solo necesitas correr un comando** y
+abrir una URL — no hace falta un segundo servidor para el HTML.
 
 **Requiere Node.js 22.5 o superior** (usa `node -v` para verificar).
 
-## Cómo ponerlo en marcha
+## Cómo ponerlo en marcha (uso local)
 
 ```bash
 npm install
-cp .env.example .env      # y cambia JWT_SECRET
-node seed.js               # crea usuarios, categorías, productos y datos de ejemplo (una sola vez)
-node server.js              # inicia la API en http://localhost:3001
+cp .env.example .env      # revisa el archivo, no es obligatorio cambiar nada para probar en local
+node server.js              # crea el superadmin automáticamente e inicia todo en un solo puerto
 ```
 
-Usuarios creados por `seed.js` (para probar la matriz de permisos con cada rol):
+Abre **http://localhost:3001** en tu navegador — ahí mismo está el ERP, ya conectado.
+
+El superadmin (`admin@opticapro.co` / `Admin1234` por defecto, o lo que hayas puesto en
+`ADMIN_EMAIL`/`ADMIN_PASSWORD` en tu `.env`) se crea automáticamente la primera vez que arranca
+el servidor. No necesitas correr ningún comando de siembra a mano para tener un sistema funcional.
+
+### Datos de ejemplo (opcional, solo para practicar)
+
+Si quieres tener usuarios de prueba con distintos roles, productos, mensajes y prospectos de
+ejemplo para explorar el sistema, corre además:
+
+```bash
+node seed.js
+```
+
+Esto NO se ejecuta nunca automáticamente (ni en local ni en producción) — es una acción manual
+que tú decides correr, para no ensuciar un sistema real con datos falsos.
 
 | Rol | Correo | Contraseña |
 |---|---|---|
@@ -22,6 +39,11 @@ Usuarios creados por `seed.js` (para probar la matriz de permisos con cada rol):
 | Optómetra | c.ramos@opticapro.co | Optometra1 |
 | Vendedor/a | m.vera@opticapro.co | Vendedor1 |
 | Contador/a | l.mendoza@opticapro.co | Contador1 |
+
+## Ponerlo en internet
+
+Ver **[DEPLOY.md](./DEPLOY.md)** — guía paso a paso para Railway o Render, incluyendo cómo
+configurar un disco persistente para que la base de datos no se borre en cada despliegue.
 
 ## Matriz de permisos
 
@@ -109,24 +131,30 @@ Endpoints: `GET /api/auditoria` (filtros `?modulo=&desde=&hasta=`), `GET /api/au
 - El mismo menú tiene "Cerrar sesión", que borra la sesión guardada en el navegador y vuelve a
   mostrar la pantalla de login para que otra persona pueda entrar con su propio usuario.
 
-## Front-end conectado
+## Front-end incluido
 
-`OpticaPro_ERP_conectado.html` es la versión del ERP ya conectada a esta API: login real,
-pacientes, POS/ventas, mensajes/chat, citas (con calendario semanal real y recordatorios),
-inventario (con alta/edición/baja según permisos), usuarios (con edición/eliminación y matriz de
-permisos editable en vivo), dashboard, recetas, pipeline CRM con Kanban editable y auditoría
-visible, reportes descargables en Excel/PDF por mes, configuración de la empresa con logo, y
-un historial de auditoría general con descarga en Excel. El menú con el nombre del usuario
-(esquina superior derecha) permite cambiar la contraseña o cerrar sesión.
+El ERP completo (login real, pacientes, POS/ventas, mensajes/chat, citas con calendario semanal
+y recordatorios, inventario, usuarios con matriz de permisos editable en vivo, dashboard, recetas,
+pipeline CRM con Kanban y auditoría visible, reportes en Excel/PDF, configuración con logo, e
+historial de auditoría general) vive en `public/index.html` y el propio `server.js` lo sirve —
+por eso basta con abrir `http://localhost:3001` (o tu URL de producción) sin ningún paso extra.
 
-Ábrelo con el backend corriendo en `http://localhost:3001` — si lo abres como archivo local
-(`file://`) funciona igual, pero si tu navegador bloquea `fetch` desde `file://`, sírvelo con
-`npx serve` o `python3 -m http.server` y ábrelo desde `http://localhost:<puerto>`.
+También queda una copia de referencia en `OpticaPro_ERP_conectado.html` (fuera de la carpeta
+`public/`) por si quieres inspeccionar el código por separado — pero la que realmente se usa al
+correr el servidor es la de `public/`. Si editas una, recuerda copiar el cambio a la otra.
+
+## Lo que ya está listo para producción
+
+- ✅ El superadmin se crea automáticamente al arrancar, con credenciales configurables por variable de entorno (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) en vez de quedar hardcodeadas.
+- ✅ El servidor se niega a arrancar en producción si no defines un `JWT_SECRET` seguro.
+- ✅ Cabeceras de seguridad HTTP (`helmet`) y límite de intentos de login (`express-rate-limit`) para dificultar ataques de fuerza bruta.
+- ✅ Front-end y backend en un solo servicio (sin problemas de CORS entre dominios distintos).
+- ✅ Guía de despliegue paso a paso en [DEPLOY.md](./DEPLOY.md) (Railway y Render).
 
 ## Lo que falta para producción
 
 1. **Pagos reales**: integrar un agregador colombiano (Wompi, ePayco o PayU) para Nequi/Daviplata/PSE — hoy el campo `estado_pago` queda en `procesando` esperando confirmación real vía webhook.
 2. **Facturación DIAN**: conectar un proveedor autorizado (Alegra, Siigo, Factus) para generar el CUFE real — hoy el campo `estado_dian` es solo un dato guardado, sin envío real.
 3. **WhatsApp real**: contratar la API de WhatsApp Business o un proveedor como Twilio para que los recordatorios y mensajes salgan de verdad (ver sección de arriba).
-4. **Migrar SQLite → PostgreSQL** cuando haya más de un usuario concurrente o se despliegue en la nube.
-5. **Desplegar**: Railway o Render funcionan bien y gratis para un backend Node pequeño.
+4. **Migrar SQLite → PostgreSQL** si crece a varias sucursales con muchos usuarios concurrentes (ver DEPLOY.md).
+5. **Respaldos automáticos** de la base de datos — Railway/Render no hacen backup automático del volumen por defecto; considera un script periódico que copie `db/opticapro.db` a almacenamiento externo (ej. un bucket de S3) si los datos son críticos.

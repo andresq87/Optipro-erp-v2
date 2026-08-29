@@ -1,6 +1,23 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+const { sembrarEsencial } = require('./seed');
+
+// ==== Verificaciones de seguridad antes de arrancar en producción ====
+const esProduccion = process.env.NODE_ENV === 'production';
+if (esProduccion && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'cambia-esto-en-produccion')) {
+  console.error('❌ ERROR: Debes definir la variable de entorno JWT_SECRET en producción.');
+  console.error('   Genera una clave larga y aleatoria, por ejemplo con: openssl rand -base64 48');
+  process.exit(1);
+}
+
+// Crea el superadmin (si no existe ninguno), las categorías base y la matriz de permisos
+// por defecto. Es seguro que esto corra en cada arranque: nunca duplica ni sobreescribe datos.
+sembrarEsencial();
 
 const authRoutes = require('./routes/auth');
 const pacientesRoutes = require('./routes/pacientes');
@@ -17,8 +34,23 @@ const permisosRoutes = require('./routes/permisos');
 const auditoriaRoutes = require('./routes/auditoria');
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+
+// Detrás de un proxy (Railway, Render, etc.) para que express-rate-limit identifique
+// correctamente la IP real de cada visitante en vez de la IP del proxy.
+app.set('trust proxy', 1);
+
+app.use(helmet({
+  contentSecurityPolicy: false, // el front-end es un solo HTML con estilos/scripts inline
+}));
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN || true, // restringe a tu dominio en producción (ver .env.example)
+}));
+app.use(express.json({ limit: '5mb' })); // 5mb por el logo en base64 de Configuración
+
+// Límite de intentos de login: 20 intentos cada 15 minutos por IP, para dificultar fuerza bruta.
+const limitadorLogin = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+app.use('/api/auth/login', limitadorLogin);
+app.use('/api/auth/cambiar-password', limitadorLogin);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', servicio: 'ÓpticaPro ERP API' }));
 
@@ -36,5 +68,16 @@ app.use('/api/configuracion', configuracionRoutes);
 app.use('/api/permisos', permisosRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
 
+// Sirve el front-end (public/index.html) desde el mismo servidor: así solo necesitas
+// desplegar UN servicio, sin preocuparte por CORS entre dos dominios distintos.
+app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) return next(); // deja pasar rutas de API no encontradas -> 404 normal
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`ÓpticaPro API corriendo en http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`ÓpticaPro API + front-end corriendo en http://localhost:${PORT}`);
+  if (!esProduccion) console.log('(NODE_ENV no está en "production" — modo desarrollo)');
+});
