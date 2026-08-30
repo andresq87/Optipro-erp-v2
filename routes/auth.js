@@ -1,9 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('../db/db');
 const { verificarToken, soloRoles, requierePermiso, SECRET } = require('../middleware/auth');
 const { registrarAuditoria } = require('../db/auditoria');
+const { enviarCorreo } = require('../db/correo');
 
 const router = express.Router();
 
@@ -25,6 +27,73 @@ router.post('/login', (req, res) => {
   );
 
   res.json({ token, usuario: { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol } });
+});
+
+// POST /api/auth/olvide-password — solicita el enlace de recuperación por correo.
+// Por seguridad, SIEMPRE responde con el mismo mensaje exista o no ese correo,
+// así nadie puede usar este endpoint para averiguar qué correos están registrados.
+// body: { correo }
+router.post('/olvide-password', async (req, res) => {
+  const { correo } = req.body;
+  const mensajeGenerico = { mensaje: 'Si ese correo está registrado, te enviamos un enlace para restablecer la contraseña.' };
+  if (!correo) return res.status(400).json({ error: 'Indica tu correo' });
+
+  const usuario = db.prepare('SELECT * FROM usuarios WHERE correo = ? AND activo = 1').get(correo);
+  if (!usuario) return res.json(mensajeGenerico); // no revelamos si existe o no
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiraEn = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hora
+  db.prepare(
+    'INSERT INTO restablecimientos_password (usuario_id, token, expira_en) VALUES (?, ?, ?)'
+  ).run(usuario.id, token, expiraEn);
+
+  const origen = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+  const enlace = `${origen}/?reset=${token}`;
+  const html = `
+    <p>Hola ${usuario.nombre},</p>
+    <p>Recibimos una solicitud para restablecer tu contraseña de ÓpticaPro ERP.</p>
+    <p><a href="${enlace}">Haz clic aquí para elegir una nueva contraseña</a></p>
+    <p>Este enlace vence en 1 hora. Si tú no pediste esto, puedes ignorar este correo.</p>
+  `;
+  try {
+    await enviarCorreo(usuario.correo, 'Restablecer tu contraseña — ÓpticaPro ERP', html);
+  } catch (e) {
+    console.error('Error enviando correo de recuperación:', e.message);
+  }
+  registrarAuditoria('usuarios', usuario.id, { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol }, 'solicito_recuperacion', 'Solicitó enlace de recuperación de contraseña');
+  res.json(mensajeGenerico);
+});
+
+// GET /api/auth/verificar-token-reset?token=... — para que el front sepa si el enlace
+// todavía es válido antes de mostrar el formulario de nueva contraseña.
+router.get('/verificar-token-reset', (req, res) => {
+  const { token } = req.query;
+  const fila = db.prepare('SELECT * FROM restablecimientos_password WHERE token = ?').get(token);
+  if (!fila || fila.usado || new Date(fila.expira_en) < new Date()) {
+    return res.json({ valido: false });
+  }
+  res.json({ valido: true });
+});
+
+// POST /api/auth/restablecer-password — { token, passwordNueva }
+router.post('/restablecer-password', (req, res) => {
+  const { token, passwordNueva } = req.body;
+  if (!token || !passwordNueva) return res.status(400).json({ error: 'Faltan datos' });
+  if (passwordNueva.length < 8) return res.status(400).json({ error: 'La contraseña debe tener mínimo 8 caracteres' });
+
+  const fila = db.prepare('SELECT * FROM restablecimientos_password WHERE token = ?').get(token);
+  if (!fila || fila.usado || new Date(fila.expira_en) < new Date()) {
+    return res.status(400).json({ error: 'El enlace no es válido o ya expiró. Solicita uno nuevo.' });
+  }
+
+  const usuario = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(fila.usuario_id);
+  if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  const hash = bcrypt.hashSync(passwordNueva, 10);
+  db.prepare('UPDATE usuarios SET password_hash = ? WHERE id = ?').run(hash, usuario.id);
+  db.prepare('UPDATE restablecimientos_password SET usado = 1 WHERE id = ?').run(fila.id);
+  registrarAuditoria('usuarios', usuario.id, { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol }, 'reseteo_password', 'Contraseña restablecida vía enlace enviado al correo');
+  res.json({ actualizado: true });
 });
 
 // PUT /api/auth/cambiar-password — cualquier usuario autenticado cambia SU PROPIA contraseña

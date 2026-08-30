@@ -854,16 +854,61 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
   </div>
 </div>
 
-<div class="modal-backdrop show" id="modalLogin" style="z-index:9999">
-  <div class="modal-box" style="max-width:340px">
-    <h3><i class="ti ti-lock"></i> Ingresar a ÓpticaPro</h3>
-    <div class="form-grid" style="grid-template-columns:1fr">
-      <div class="form-group"><label>Correo</label><input id="loginCorreo" value="admin@opticapro.co" placeholder="correo@opticapro.co"></div>
-      <div class="form-group"><label>Contraseña</label><input id="loginPassword" type="password" value="Admin1234" placeholder="Contraseña" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
-      <div id="loginError" style="color:#e11d48;font-size:12px;display:none">Correo o contraseña incorrectos.</div>
+<div class="modal-backdrop show" id="pantallaAcceso" style="z-index:9999">
+  <div class="modal-box" style="max-width:380px">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:32px;color:var(--c2)"><i class="ti ti-eye"></i></div>
+      <div style="font-size:20px;font-weight:800;color:var(--c1)">ÓpticaPro ERP</div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="hacerLogin()"><i class="ti ti-login"></i> Ingresar</button>
+
+    <!-- VISTA: LOGIN -->
+    <div id="vistaLogin">
+      <h3 style="justify-content:center"><i class="ti ti-lock"></i> Ingresar</h3>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>Correo</label><input id="loginCorreo" placeholder="correo@opticapro.co"></div>
+        <div class="form-group"><label>Contraseña</label><input id="loginPassword" type="password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')hacerLogin()"></div>
+        <div id="loginError" style="color:#e11d48;font-size:12px;display:none"></div>
+      </div>
+      <div class="modal-actions" style="flex-direction:column;gap:8px;align-items:stretch">
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="hacerLogin()"><i class="ti ti-login"></i> Ingresar</button>
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12.5px" onclick="mostrarVistaAcceso('olvide')">¿Olvidaste tu contraseña?</button>
+      </div>
+    </div>
+
+    <!-- VISTA: OLVIDÉ MI CONTRASEÑA -->
+    <div id="vistaOlvide" style="display:none">
+      <h3 style="justify-content:center"><i class="ti ti-mail"></i> Recuperar Contraseña</h3>
+      <p style="font-size:12.5px;color:var(--cs);margin-bottom:10px">Escribe el correo con el que creaste tu usuario. Te enviaremos un enlace para elegir una nueva contraseña.</p>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>Correo</label><input id="olvideCorreo" placeholder="correo@opticapro.co" onkeydown="if(event.key==='Enter')solicitarRecuperacion()"></div>
+      </div>
+      <div id="olvideMensaje" style="font-size:12.5px;margin-bottom:8px;display:none"></div>
+      <div class="modal-actions" style="flex-direction:column;gap:8px;align-items:stretch">
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="solicitarRecuperacion()"><i class="ti ti-send"></i> Enviar enlace</button>
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12.5px" onclick="mostrarVistaAcceso('login')">← Volver a ingresar</button>
+      </div>
+    </div>
+
+    <!-- VISTA: ELEGIR NUEVA CONTRASEÑA (desde el enlace del correo) -->
+    <div id="vistaNuevaClave" style="display:none">
+      <h3 style="justify-content:center"><i class="ti ti-key"></i> Elige tu Nueva Contraseña</h3>
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>Nueva contraseña</label><input id="nuevaClave1" type="password" placeholder="Mínimo 8 caracteres"></div>
+        <div class="form-group"><label>Confirmar contraseña</label><input id="nuevaClave2" type="password" placeholder="Repite la contraseña" onkeydown="if(event.key==='Enter')confirmarNuevaClave()"></div>
+      </div>
+      <div id="nuevaClaveMensaje" style="font-size:12.5px;color:#e11d48;margin-bottom:8px;display:none"></div>
+      <div class="modal-actions" style="flex-direction:column;gap:8px;align-items:stretch">
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="confirmarNuevaClave()"><i class="ti ti-check"></i> Guardar Nueva Contraseña</button>
+      </div>
+    </div>
+
+    <!-- VISTA: ENLACE INVÁLIDO O VENCIDO -->
+    <div id="vistaEnlaceInvalido" style="display:none">
+      <h3 style="justify-content:center"><i class="ti ti-alert-triangle"></i> Enlace no válido</h3>
+      <p style="font-size:12.5px;color:var(--cs);margin-bottom:10px">Este enlace de recuperación ya expiró o ya fue usado. Solicita uno nuevo.</p>
+      <div class="modal-actions" style="flex-direction:column;gap:8px;align-items:stretch">
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="mostrarVistaAcceso('olvide')">Solicitar nuevo enlace</button>
+      </div>
     </div>
   </div>
 </div>
@@ -878,6 +923,82 @@ const API_BASE = (location.protocol === 'file:') ? 'http://localhost:3001' : loc
 
 function getToken(){ return localStorage.getItem('opticapro_token'); }
 
+function mostrarVistaAcceso(vista){
+  ['vistaLogin','vistaOlvide','vistaNuevaClave','vistaEnlaceInvalido'].forEach(function(id){
+    document.getElementById(id).style.display = (id==='vista'+vista.charAt(0).toUpperCase()+vista.slice(1)) ? '' : 'none';
+  });
+  document.getElementById('olvideMensaje').style.display = 'none';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  // Si llegamos desde el enlace del correo (?reset=TOKEN), mostramos directamente
+  // la pantalla para elegir nueva contraseña, sin pedir login primero.
+  var params = new URLSearchParams(location.search);
+  var tokenReset = params.get('reset');
+  if(tokenReset){
+    document.getElementById('pantallaAcceso').classList.add('show');
+    try{
+      var r = await fetch(API_BASE + '/api/auth/verificar-token-reset?token=' + encodeURIComponent(tokenReset));
+      var data = await r.json();
+      if(data.valido){
+        window._tokenResetActual = tokenReset;
+        mostrarVistaAcceso('nuevaClave');
+      }else{
+        mostrarVistaAcceso('enlaceInvalido');
+      }
+    }catch(e){
+      mostrarVistaAcceso('enlaceInvalido');
+    }
+    return;
+  }
+  if(getToken()){
+    document.getElementById('pantallaAcceso').classList.remove('show');
+    inicializarDatos();
+  }
+});
+
+async function solicitarRecuperacion(){
+  var correo = document.getElementById('olvideCorreo').value.trim();
+  var msgEl = document.getElementById('olvideMensaje');
+  if(!correo){ msgEl.style.color='#e11d48'; msgEl.textContent='Escribe tu correo'; msgEl.style.display='block'; return; }
+  try{
+    var res = await fetch(API_BASE + '/api/auth/olvide-password', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({correo: correo})
+    });
+    var data = await res.json();
+    msgEl.style.color = 'var(--c5)';
+    msgEl.textContent = data.mensaje || 'Si ese correo está registrado, te enviamos un enlace.';
+    msgEl.style.display = 'block';
+  }catch(e){
+    msgEl.style.color='#e11d48'; msgEl.textContent='No se pudo conectar con el servidor'; msgEl.style.display='block';
+  }
+}
+
+async function confirmarNuevaClave(){
+  var clave1 = document.getElementById('nuevaClave1').value;
+  var clave2 = document.getElementById('nuevaClave2').value;
+  var msgEl = document.getElementById('nuevaClaveMensaje');
+  msgEl.style.display = 'none';
+  if(!clave1 || !clave2){ msgEl.textContent='Completa ambos campos'; msgEl.style.display='block'; return; }
+  if(clave1.length < 8){ msgEl.textContent='La contraseña debe tener mínimo 8 caracteres'; msgEl.style.display='block'; return; }
+  if(clave1 !== clave2){ msgEl.textContent='Las contraseñas no coinciden'; msgEl.style.display='block'; return; }
+  try{
+    var res = await fetch(API_BASE + '/api/auth/restablecer-password', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({token: window._tokenResetActual, passwordNueva: clave1})
+    });
+    var data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No se pudo restablecer la contraseña');
+    alert('✅ Contraseña actualizada. Ya puedes ingresar con tu nueva contraseña.');
+    history.replaceState({}, '', location.pathname); // quita el ?reset= de la URL
+    mostrarVistaAcceso('login');
+  }catch(e){
+    msgEl.textContent = e.message; msgEl.style.display = 'block';
+  }
+}
+
 async function apiFetch(path, opts){
   opts = opts || {};
   opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
@@ -886,7 +1007,7 @@ async function apiFetch(path, opts){
   var res = await fetch(API_BASE + path, opts);
   if(res.status === 401 || res.status === 403){
     localStorage.removeItem('opticapro_token');
-    document.getElementById('modalLogin').classList.add('show');
+    document.getElementById('pantallaAcceso').classList.add('show');
     throw new Error('Sesión expirada, inicia sesión de nuevo');
   }
   var data = await res.json().catch(function(){ return {}; });
@@ -908,7 +1029,7 @@ async function hacerLogin(){
     if(!res.ok) throw new Error(data.error || 'No se pudo iniciar sesión');
     localStorage.setItem('opticapro_token', data.token);
     localStorage.setItem('opticapro_usuario', JSON.stringify(data.usuario));
-    document.getElementById('modalLogin').classList.remove('show');
+    document.getElementById('pantallaAcceso').classList.remove('show');
     inicializarDatos();
   }catch(e){
     errEl.textContent = e.message.indexOf('fetch') > -1
@@ -975,7 +1096,7 @@ async function cambiarMiPassword(){
 
 document.addEventListener('DOMContentLoaded', function(){
   if(getToken()){
-    document.getElementById('modalLogin').classList.remove('show');
+    document.getElementById('pantallaAcceso').classList.remove('show');
     inicializarDatos();
   }
 });

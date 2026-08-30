@@ -131,6 +131,34 @@ Endpoints: `GET /api/auditoria` (filtros `?modulo=&desde=&hasta=`), `GET /api/au
 - El mismo menú tiene "Cerrar sesión", que borra la sesión guardada en el navegador y vuelve a
   mostrar la pantalla de login para que otra persona pueda entrar con su propio usuario.
 
+## Recuperación de contraseña por correo (¿olvidaste tu contraseña?)
+
+En la pantalla de login hay un enlace "¿Olvidaste tu contraseña?". El flujo completo:
+
+1. El usuario escribe su correo → `POST /api/auth/olvide-password`. Por seguridad, la respuesta
+   es siempre el mismo mensaje genérico, exista o no ese correo registrado (así nadie puede usar
+   este formulario para averiguar qué correos están dados de alta).
+2. Si el correo existe, se genera un enlace de un solo uso que vence en 1 hora y se envía por
+   correo con el asunto "Restablecer tu contraseña — ÓpticaPro ERP".
+3. Al abrir el enlace (`tu-dominio.com/?reset=TOKEN`), la propia página detecta el parámetro y
+   muestra directamente el formulario para elegir la nueva contraseña — no hace falta iniciar
+   sesión primero.
+4. Una vez cambiada, el enlace queda invalidado: no se puede volver a usar.
+
+**Configurar el envío real de correos** (`.env`): agrega `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASS` y `SMTP_FROM`. La forma más simple y gratuita es con Gmail:
+
+1. Activa la verificación en 2 pasos en tu cuenta de Gmail.
+2. Ve a `myaccount.google.com/apppasswords` y genera una "contraseña de aplicación".
+3. Usa esa contraseña de 16 caracteres (no la de tu cuenta normal) en `SMTP_PASS`.
+
+Si no configuras estas variables, el sistema sigue funcionando: el enlace de recuperación queda
+impreso en los logs del servidor en vez de enviarse por correo — útil para probar en tu PC, pero
+**debes configurarlo en producción** para que la recuperación funcione de verdad para tus usuarios.
+
+Opcional: define `APP_URL` con la URL pública de tu ERP ya desplegado, para que el enlace del
+correo apunte siempre ahí (si no la defines, se calcula sola a partir de la petición).
+
 ## Front-end incluido
 
 El ERP completo (login real, pacientes, POS/ventas, mensajes/chat, citas con calendario semanal

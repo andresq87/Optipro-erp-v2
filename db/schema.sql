@@ -150,7 +150,16 @@ CREATE TABLE IF NOT EXISTS configuracion (
   logo_base64 TEXT
 );
 
--- Matriz de permisos por rol, editable en vivo SOLO por el superadmin.
+-- Tokens de un solo uso para restablecer contraseña por correo. Expiran a la hora y
+-- quedan marcados como usados apenas se consumen, para que el enlace no sirva dos veces.
+CREATE TABLE IF NOT EXISTS restablecimientos_password (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+  token TEXT UNIQUE NOT NULL,
+  expira_en TEXT NOT NULL,
+  usado INTEGER DEFAULT 0,
+  creado_en TEXT DEFAULT (datetime('now','-5 hours'))
+);
 -- 'superadmin' siempre tiene acceso total y NO se guarda aquí (regla fija en el código,
 -- no en la base de datos, para que nunca se pueda quitar el propio acceso por accidente).
 CREATE TABLE IF NOT EXISTS permisos (
