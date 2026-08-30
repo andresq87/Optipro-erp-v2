@@ -9,13 +9,13 @@ router.use(verificarToken);
 router.get('/resumen', (req, res) => {
   const totalPacientes = db.prepare('SELECT COUNT(*) AS n FROM pacientes').get().n;
   const ventasHoy = db.prepare(
-    "SELECT COUNT(*) AS n, COALESCE(SUM(total),0) AS total FROM ventas WHERE date(creado_en) = date('now')"
+    "SELECT COUNT(*) AS n, COALESCE(SUM(total),0) AS total FROM ventas WHERE date(creado_en) = date('now','-5 hours')"
   ).get();
   const mensajesNoLeidos = db.prepare(
     "SELECT COUNT(*) AS n FROM mensajes WHERE direccion = 'entrante' AND leido = 0"
   ).get().n;
   const citasHoy = db.prepare(
-    "SELECT COUNT(*) AS n FROM citas WHERE fecha = date('now')"
+    "SELECT COUNT(*) AS n FROM citas WHERE fecha = date('now','-5 hours')"
   ).get().n;
   res.json({ totalPacientes, ventasHoy: ventasHoy.n, montoVentasHoy: ventasHoy.total, mensajesNoLeidos, citasHoy });
 });

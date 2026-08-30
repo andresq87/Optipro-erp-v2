@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   password_hash TEXT NOT NULL,
   rol TEXT NOT NULL CHECK(rol IN ('superadmin','optometra','vendedor','contador','lectura')),
   activo INTEGER DEFAULT 1,
-  creado_en TEXT DEFAULT (datetime('now'))
+  creado_en TEXT DEFAULT (datetime('now','-5 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS pacientes (
@@ -21,13 +21,13 @@ CREATE TABLE IF NOT EXISTS pacientes (
   telefono TEXT,
   correo TEXT,
   eps TEXT,
-  creado_en TEXT DEFAULT (datetime('now'))
+  creado_en TEXT DEFAULT (datetime('now','-5 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS historias_clinicas (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   paciente_id INTEGER NOT NULL REFERENCES pacientes(id),
-  fecha TEXT DEFAULT (datetime('now')),
+  fecha TEXT DEFAULT (datetime('now','-5 hours')),
   diagnostico TEXT,
   od_esfera REAL, od_cilindro REAL, od_eje INTEGER,
   oi_esfera REAL, oi_cilindro REAL, oi_eje INTEGER,
@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS ventas (
   numero_factura TEXT UNIQUE,
   paciente_id INTEGER REFERENCES pacientes(id),
   usuario_id INTEGER REFERENCES usuarios(id),
+  asesor TEXT,
   subtotal REAL NOT NULL,
   iva REAL NOT NULL,
   total REAL NOT NULL,
@@ -77,7 +78,7 @@ CREATE TABLE IF NOT EXISTS ventas (
   estado_pago TEXT DEFAULT 'pendiente' CHECK(estado_pago IN ('pendiente','procesando','aprobado','rechazado')),
   estado_dian TEXT DEFAULT 'no_enviada' CHECK(estado_dian IN ('no_enviada','pruebas','enviada','rechazada')),
   cufe TEXT,
-  creado_en TEXT DEFAULT (datetime('now'))
+  creado_en TEXT DEFAULT (datetime('now','-5 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS venta_items (
@@ -96,7 +97,7 @@ CREATE TABLE IF NOT EXISTS mensajes (
   contenido TEXT NOT NULL,
   direccion TEXT CHECK(direccion IN ('entrante','saliente')),
   leido INTEGER DEFAULT 0,
-  creado_en TEXT DEFAULT (datetime('now'))
+  creado_en TEXT DEFAULT (datetime('now','-5 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS prospectos (
@@ -106,7 +107,7 @@ CREATE TABLE IF NOT EXISTS prospectos (
   origen TEXT,
   nota TEXT,
   etapa TEXT DEFAULT 'prospectos' CHECK(etapa IN ('prospectos','contactados','examinados','propuesta','cerrado')),
-  creado_en TEXT DEFAULT (datetime('now'))
+  creado_en TEXT DEFAULT (datetime('now','-5 hours'))
 );
 
 -- Bitácora de auditoría del CRM: SOLO INSERT, nunca se actualiza ni se borra.
@@ -118,7 +119,7 @@ CREATE TABLE IF NOT EXISTS auditoria_prospectos (
   usuario_nombre TEXT,
   accion TEXT NOT NULL, -- 'creado' | 'editado' | 'movido' | 'eliminado'
   detalle TEXT,
-  fecha TEXT DEFAULT (datetime('now'))
+  fecha TEXT DEFAULT (datetime('now','-5 hours'))
 );
 
 -- Bitácora GENERAL del sistema: usuarios, inventario, CRM, configuración y permisos.
@@ -133,7 +134,7 @@ CREATE TABLE IF NOT EXISTS auditoria (
   usuario_rol TEXT,
   accion TEXT NOT NULL,
   detalle TEXT,
-  fecha TEXT DEFAULT (datetime('now'))
+  fecha TEXT DEFAULT (datetime('now','-5 hours'))
 );
 
 -- Configuración general de la empresa (fila única, id = 1)

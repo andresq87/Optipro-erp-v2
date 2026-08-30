@@ -31,7 +31,8 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
 /* LAYOUT */
 .main-layout{display:flex;flex:1;overflow:hidden;}
 /* SIDEBAR */
-.sidebar{width:220px;background:#fff;border-right:1px solid var(--cborder);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--cborder);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width .2s, margin-left .2s;}
+.sidebar.collapsed{width:0;margin-left:-1px;overflow:hidden;border-right:none;}
 .sidebar-section{padding:12px 8px 4px;}
 .sidebar-label{font-size:10px;font-weight:700;color:var(--cs);text-transform:uppercase;letter-spacing:.8px;padding:0 8px 6px;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--cs);transition:all .18s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;font-family:var(--font);}
@@ -186,12 +187,50 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
 /* CHAT */
 .chat-bubble-left{align-self:flex-start;background:#fff;border:1px solid var(--cborder);border-radius:0 8px 8px 8px;padding:7px 10px;max-width:80%;font-size:13px;}
 .chat-bubble-right{align-self:flex-end;background:var(--c2);color:#fff;border-radius:8px 0 8px 8px;padding:7px 10px;max-width:80%;font-size:13px;}
+/* ==== RESPONSIVE: tablet y celular ==== */
+@media (max-width: 1024px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .crm-pipeline{grid-template-columns:repeat(3,1fr);overflow-x:auto;}
+  .pos-products{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width: 900px){
+  .pos-grid{grid-template-columns:1fr !important;}
+  .grid2{grid-template-columns:1fr;}
+}
+@media (max-width: 768px){
+  .sidebar{position:fixed;top:56px;left:0;bottom:0;z-index:500;box-shadow:2px 0 12px rgba(0,0,0,.15);}
+  .sidebar.collapsed{width:220px;margin-left:-221px;}
+  .sidebar:not(.collapsed){width:220px;}
+  .main-layout{position:relative;}
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .form-grid{grid-template-columns:1fr;}
+  .crm-pipeline{grid-template-columns:1fr;}
+  .pos-products{grid-template-columns:repeat(2,1fr);}
+  .modal-box{width:92vw;padding:16px;}
+  .topbar{padding:0 10px;}
+  .logo{font-size:14px;}
+  .topbar-actions span#miNombre{display:none;}
+  table.tbl{display:block;}
+  table.tbl thead{display:none;}
+  table.tbl tbody{display:block;}
+  table.tbl tr{display:block;border:1px solid var(--cborder);border-radius:8px;margin-bottom:8px;padding:8px;}
+  table.tbl td{display:flex;justify-content:space-between;gap:10px;border:none;padding:4px 2px;font-size:12px;text-align:right;}
+  table.tbl td:first-child{font-weight:700;color:var(--c1);}
+  .search-bar{flex-direction:column;align-items:stretch;}
+  .page-header h1{font-size:18px;}
+}
+@media (max-width: 480px){
+  .stats-row{grid-template-columns:1fr;}
+  .pos-products{grid-template-columns:1fr;}
+  .day-header{font-size:10px;}
+}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="topbar">
+  <button class="icon-btn" onclick="toggleSidebar()" title="Mostrar/ocultar menú" style="margin-right:6px"><i class="ti ti-menu-2"></i></button>
   <div class="logo"><i class="ti ti-eye"></i> ÓpticaPro ERP</div>
   <div class="topbar-sep"></div>
   <div class="topbar-actions">
@@ -326,22 +365,11 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
 
 <!-- AGENDA -->
 <div class="page" id="page-agenda">
-  <div class="page-header"><h1>Agenda de Citas</h1><p id="agendaMesAno">Vista semanal</p></div>
+  <div class="page-header"><h1>Agenda de Citas</h1><p>Próximas citas registradas</p></div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-    <button class="btn btn-primary btn-sm" onclick="openModal('modalCita')"><i class="ti ti-plus"></i> Nueva Cita</button>
-    <span style="font-size:13px;font-weight:700;" id="agendaRangoSemana"></span>
+    <button class="btn btn-primary btn-sm" onclick="resetModalCita();openModal('modalCita')"><i class="ti ti-plus"></i> Nueva Cita</button>
   </div>
   <div class="card">
-    <div class="agenda-grid" id="agendaGrid">
-      <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--cs)">Cargando semana...</div>
-    </div>
-    <div style="display:flex;gap:12px;margin-top:12px;font-size:12px;">
-      <span><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;margin-right:4px;"></span>Examen visual</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:var(--c5);border-radius:2px;margin-right:4px;"></span>Entrega</span>
-      <span><span style="display:inline-block;width:10px;height:10px;background:var(--c7);border-radius:2px;margin-right:4px;"></span>Ajuste</span>
-    </div>
-  </div>
-  <div class="card" style="margin-top:14px">
     <div class="card-title"><i class="ti ti-list"></i> Próximas citas registradas</div>
     <table class="tbl">
       <thead><tr><th>Paciente</th><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Estado</th><th>Recordatorio</th></tr></thead>
@@ -355,7 +383,7 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
   <div class="page-header"><h1>Pacientes</h1><p>Gestión de expedientes clínicos</p></div>
   <div class="search-bar">
     <input type="text" id="buscarPaciente" placeholder="Buscar por nombre, cédula o teléfono..." oninput="cargarPacientes(this.value)">
-    <button class="btn btn-primary" onclick="openModal('modalPaciente')"><i class="ti ti-user-plus"></i> Nuevo Paciente</button>
+    <button class="btn btn-primary" onclick="resetModalPaciente();openModal('modalPaciente')"><i class="ti ti-user-plus"></i> Nuevo Paciente</button>
   </div>
   <div class="card">
     <table class="tbl">
@@ -424,6 +452,7 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
       <div class="pos-cart-header"><i class="ti ti-shopping-cart"></i> Carrito de Compra</div>
       <div class="pos-cart-items" id="cartItems"><div style="text-align:center;padding:30px;color:var(--cs);font-size:13px;">Selecciona productos para agregar al carrito</div></div>
       <div class="pos-total">
+        <div class="form-group" style="margin-bottom:8px"><label style="font-size:11px">Nombre del asesor</label><input id="posAsesor" placeholder="Ej: Marcela Vera" style="width:100%"></div>
         <div class="total-row"><span>Subtotal</span><span id="subtotal">$0</span></div>
         <div class="total-row"><span>IVA (19%)</span><span id="iva">$0</span></div>
         <div class="total-row grand"><span>Total a Pagar</span><span id="total">$0</span></div>
@@ -448,9 +477,14 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     <div class="stat-card"><div class="label">Alertas Activas</div><div class="value" id="invAlertas">—</div><div class="delta down">⚠ Stock bajo/crítico</div></div>
   </div>
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div class="card-title" style="margin-bottom:0"><i class="ti ti-package"></i> Existencias</div>
-      <button class="btn btn-primary btn-sm" id="btnAgregarProducto" onclick="abrirNuevoProducto()"><i class="ti ti-plus"></i> Agregar Producto</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="descargarPlantillaProductos()"><i class="ti ti-file-download"></i> Descargar Plantilla</button>
+        <button class="btn btn-ghost btn-sm" id="btnCargaMasiva" onclick="document.getElementById('inputCargaMasiva').click()"><i class="ti ti-upload"></i> Carga Masiva</button>
+        <input type="file" id="inputCargaMasiva" accept=".xlsx,.csv" style="display:none" onchange="cargarProductosMasivo(this)">
+        <button class="btn btn-primary btn-sm" id="btnAgregarProducto" onclick="abrirNuevoProducto()"><i class="ti ti-plus"></i> Agregar Producto</button>
+      </div>
     </div>
     <table class="tbl">
       <thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Valor Unit.</th><th>Estado</th><th>Acciones</th></tr></thead>
@@ -467,7 +501,8 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     <div class="form-grid">
       <div class="form-group"><label>Nombre</label><input id="prodNombre" placeholder="Nombre del producto"></div>
       <div class="form-group"><label>Categoría</label>
-        <select id="prodCategoria"><option value="1">Monturas</option><option value="2">Lentes</option><option value="3">Accesorios</option></select>
+        <input id="prodCategoria" list="listaCategorias" placeholder="Elige o escribe una nueva categoría">
+        <datalist id="listaCategorias"></datalist>
       </div>
       <div class="form-group"><label>Precio</label><input id="prodPrecio" type="number" placeholder="Ej: 420000"></div>
       <div class="form-group"><label>Stock inicial</label><input id="prodStock" type="number" placeholder="Ej: 10"></div>
@@ -545,8 +580,8 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
       </div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
         <button class="btn btn-ghost btn-sm"><i class="ti ti-template"></i> Plantillas</button>
-        <button class="btn btn-ghost btn-sm" onclick="openModal('modalCita')"><i class="ti ti-calendar"></i> Agendar Cita</button>
-        <button class="btn btn-ghost btn-sm" onclick="openModal('modalPaciente')"><i class="ti ti-user-plus"></i> Crear Paciente</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetModalCita();openModal('modalCita')"><i class="ti ti-calendar"></i> Agendar Cita</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetModalPaciente();openModal('modalPaciente')"><i class="ti ti-user-plus"></i> Crear Paciente</button>
       </div>
     </div>
   </div>
@@ -604,6 +639,8 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
   <div class="card" id="repDescargas" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
     <label style="font-size:13px;font-weight:600">Mes:</label>
     <input type="month" id="repMes">
+    <label style="font-size:13px;font-weight:600" id="repAsesorLabel">Asesor:</label>
+    <select id="repAsesor"><option value="">Todos</option></select>
     <button class="btn btn-ghost btn-sm" onclick="descargarReporte('xlsx')"><i class="ti ti-file-spreadsheet"></i> Descargar Excel</button>
     <button class="btn btn-ghost btn-sm" onclick="descargarReporte('pdf')"><i class="ti ti-file-type-pdf"></i> Descargar PDF</button>
     <span id="repPermisoAviso" style="font-size:12px;color:var(--cs);display:none">No tienes permiso para descargar este reporte.</span>
@@ -957,8 +994,19 @@ async function cargarPacientes(busqueda){
     }).join('');
     // refresca el selector de pacientes del modal de citas
     var sel = document.getElementById('citaPaciente');
-    if(sel) sel.innerHTML = pacientes.map(function(p){ return '<option value="'+p.id+'">'+p.nombres+' '+p.apellidos+'</option>'; }).join('');
+    if(sel) sel.innerHTML = '<option value="">Selecciona un paciente...</option>' + pacientes.map(function(p){ return '<option value="'+p.id+'">'+p.nombres+' '+p.apellidos+'</option>'; }).join('');
   }catch(e){ console.error(e); }
+}
+
+function resetModalPaciente(){
+  document.getElementById('pacNombres').value = '';
+  document.getElementById('pacApellidos').value = '';
+  document.getElementById('pacTipoDoc').value = 'CC';
+  document.getElementById('pacNumDoc').value = '';
+  document.getElementById('pacFechaNac').value = '';
+  document.getElementById('pacTelefono').value = '';
+  document.getElementById('pacCorreo').value = '';
+  document.getElementById('pacEps').value = '';
 }
 
 async function guardarPaciente(){
@@ -978,6 +1026,7 @@ async function guardarPaciente(){
   try{
     await apiFetch('/api/pacientes', {method:'POST', body:JSON.stringify(body)});
     closeModal('modalPaciente');
+    resetModalPaciente();
     cargarPacientes();
   }catch(e){ alert('❌ ' + e.message); }
 }
@@ -1003,6 +1052,16 @@ async function cargarProductosPOS(){
 // ==== CITAS ====
 // (cargarCitas se define más abajo, junto con el calendario semanal)
 
+function resetModalCita(){
+  var sel = document.getElementById('citaPaciente');
+  if(sel) sel.value = '';
+  document.getElementById('citaTipo').value = 'examen';
+  document.getElementById('citaFecha').value = '';
+  document.getElementById('citaHora').value = '10:00';
+  document.getElementById('citaRecordatorio').value = 'manual';
+  document.getElementById('citaNotas').value = '';
+}
+
 async function guardarCita(){
   var pacienteId = document.getElementById('citaPaciente').value;
   if(!pacienteId){ alert('Registra o selecciona un paciente primero'); return; }
@@ -1018,6 +1077,7 @@ async function guardarCita(){
   try{
     var cita = await apiFetch('/api/citas', {method:'POST', body:JSON.stringify(body)});
     closeModal('modalCita');
+    resetModalCita();
     cargarCitas();
     if(cita.recordatorio_modo==='automatico') alert('✅ Cita creada. El recordatorio de WhatsApp se envió automáticamente.');
   }catch(e){ alert('❌ ' + e.message); }
@@ -1067,14 +1127,25 @@ function tienePermiso(lista){
   return u && lista.indexOf(u.rol) > -1;
 }
 
+async function cargarListaCategorias(){
+  try{
+    var categorias = await apiFetch('/api/productos/categorias');
+    document.getElementById('listaCategorias').innerHTML = categorias.map(function(c){
+      return '<option value="'+c.nombre+'">';
+    }).join('');
+  }catch(e){ console.error(e); }
+}
+
 async function cargarInventario(){
   try{
     var productos = await apiFetch('/api/productos');
+    cargarListaCategorias();
     var body = document.getElementById('inventarioBody');
     if(!body) return;
     var puedeEditar = tienePermiso(PERMISOS_FRONT.inventario_editar);
     var puedeEliminar = tienePermiso(PERMISOS_FRONT.inventario_eliminar);
     document.getElementById('btnAgregarProducto').style.display = puedeEditar ? '' : 'none';
+    document.getElementById('btnCargaMasiva').style.display = puedeEditar ? '' : 'none';
 
     var valorTotal = productos.reduce(function(s,p){ return s+p.precio*p.stock; },0);
     var alertas = productos.filter(function(p){ return p.stock <= p.stock_minimo; }).length;
@@ -1085,7 +1156,8 @@ async function cargarInventario(){
     if(!productos.length){ body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--cs)">Sin productos</td></tr>'; return; }
     body.innerHTML = productos.map(function(p){
       var acciones = '';
-      if(puedeEditar) acciones += '<button class="btn btn-ghost btn-sm" onclick="abrirEditarProducto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\','+p.precio+','+p.stock_minimo+','+(p.categoria_id||1)+')"><i class="ti ti-edit"></i></button> ';
+      var catEsc = (p.categoria||'').replace(/'/g,"\\'");
+      if(puedeEditar) acciones += '<button class="btn btn-ghost btn-sm" onclick="abrirEditarProducto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\','+p.precio+','+p.stock_minimo+',\''+catEsc+'\')"><i class="ti ti-edit"></i></button> ';
       if(puedeEliminar) acciones += '<button class="btn btn-ghost btn-sm" onclick="eliminarProducto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash" style="color:#e11d48"></i></button>';
       return '<tr><td>'+p.nombre+'</td><td>'+(p.categoria||'—')+'</td><td>'+p.stock+'</td><td>'+p.stock_minimo+'</td><td>$'+numFmt(p.precio)+'</td><td>'+badgeStock(p)+'</td><td>'+acciones+'</td></tr>';
     }).join('');
@@ -1099,19 +1171,20 @@ function abrirNuevoProducto(){
   document.getElementById('btnGuardarProducto').textContent = 'Agregar Producto';
   document.getElementById('prodNombre').value = '';
   document.getElementById('prodPrecio').value = '';
+  document.getElementById('prodCategoria').value = '';
   document.getElementById('prodStock').value = '';
   document.getElementById('prodStock').closest('.form-group').style.display = '';
   document.getElementById('prodStockMinimo').value = '5';
   document.getElementById('prodAjusteStock').closest('.form-group').style.display = 'none';
   openModal('modalProducto');
 }
-function abrirEditarProducto(id, nombre, precio, stockMinimo, categoriaId){
+function abrirEditarProducto(id, nombre, precio, stockMinimo, categoriaNombre){
   productoEditandoId = id;
   document.getElementById('modalProductoTitulo').innerHTML = '<i class="ti ti-edit"></i> Editar Producto';
   document.getElementById('btnGuardarProducto').textContent = 'Guardar Cambios';
   document.getElementById('prodNombre').value = nombre;
   document.getElementById('prodPrecio').value = precio;
-  document.getElementById('prodCategoria').value = categoriaId;
+  document.getElementById('prodCategoria').value = categoriaNombre || '';
   document.getElementById('prodStockMinimo').value = stockMinimo;
   document.getElementById('prodStock').closest('.form-group').style.display = 'none';
   document.getElementById('prodAjusteStock').value = '';
@@ -1123,25 +1196,61 @@ async function guardarProducto(){
   var nombre = document.getElementById('prodNombre').value.trim();
   var precio = Number(document.getElementById('prodPrecio').value);
   var stockMinimo = Number(document.getElementById('prodStockMinimo').value) || 5;
-  var categoriaId = Number(document.getElementById('prodCategoria').value);
+  var categoria = document.getElementById('prodCategoria').value.trim();
   if(!nombre || !precio){ alert('Nombre y precio son obligatorios'); return; }
   try{
     if(productoEditandoId){
       await apiFetch('/api/productos/'+productoEditandoId, {method:'PUT', body:JSON.stringify({
-        nombre: nombre, precio: precio, stock_minimo: stockMinimo, categoria_id: categoriaId
+        nombre: nombre, precio: precio, stock_minimo: stockMinimo, categoria: categoria
       })});
       var ajuste = Number(document.getElementById('prodAjusteStock').value);
       if(ajuste){ await apiFetch('/api/productos/'+productoEditandoId+'/stock', {method:'PUT', body:JSON.stringify({delta:ajuste})}); }
     }else{
       var stock = Number(document.getElementById('prodStock').value) || 0;
       await apiFetch('/api/productos', {method:'POST', body:JSON.stringify({
-        nombre: nombre, precio: precio, stock: stock, stock_minimo: stockMinimo, categoria_id: categoriaId
+        nombre: nombre, precio: precio, stock: stock, stock_minimo: stockMinimo, categoria: categoria
       })});
     }
     closeModal('modalProducto');
     cargarInventario();
     cargarProductosPOS();
   }catch(e){ alert('❌ '+e.message); }
+}
+
+async function descargarPlantillaProductos(){
+  try{
+    var res = await fetch(API_BASE + '/api/productos/plantilla', { headers: { 'Authorization': 'Bearer ' + getToken() } });
+    if(!res.ok) throw new Error('No se pudo generar la plantilla');
+    var blob = await res.blob();
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'plantilla-productos.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }catch(e){ alert('❌ '+e.message); }
+}
+
+async function cargarProductosMasivo(input){
+  var file = input.files[0];
+  if(!file) return;
+  var formData = new FormData();
+  formData.append('archivo', file);
+  try{
+    var res = await fetch(API_BASE + '/api/productos/importar', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + getToken() },
+      body: formData
+    });
+    var data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No se pudo procesar el archivo');
+    var msg = '✅ Carga completada: '+data.creados+' productos creados, '+data.actualizados+' actualizados.';
+    if(data.errores && data.errores.length) msg += '\n\nFilas con error:\n'+data.errores.join('\n');
+    alert(msg);
+    input.value = '';
+    cargarInventario();
+    cargarProductosPOS();
+  }catch(e){ alert('❌ '+e.message); input.value=''; }
 }
 
 async function eliminarProducto(id, nombre){
@@ -1507,36 +1616,7 @@ async function cargarCitas(){
         }).join('');
       }
     }
-    pintarCalendarioSemanal(citas);
   }catch(e){ console.error(e); }
-}
-
-function pintarCalendarioSemanal(citas){
-  var grid = document.getElementById('agendaGrid');
-  if(!grid) return;
-  var hoy = new Date();
-  var lunes = inicioDeSemana(hoy);
-  var dias = [];
-  for(var i=0;i<7;i++){ var d=new Date(lunes); d.setDate(lunes.getDate()+i); dias.push(d); }
-
-  document.getElementById('agendaMesAno').textContent = mesesEs[hoy.getMonth()]+' '+hoy.getFullYear()+' — Vista semanal';
-  var domingo = dias[6];
-  document.getElementById('agendaRangoSemana').textContent = dias[0].getDate()+' – '+domingo.getDate()+' '+mesesEs[domingo.getMonth()]+' '+domingo.getFullYear();
-
-  var headers = dias.map(function(d){ return '<div class="day-header">'+diasEs[d.getDay()]+' '+d.getDate()+'</div>'; }).join('');
-
-  var celdas = dias.map(function(d){
-    var iso = formatoISO(d);
-    var esHoy = iso === formatoISO(hoy);
-    var citasDia = citas.filter(function(c){ return c.fecha === iso; });
-    var appts = citasDia.map(function(c){
-      var clase = c.tipo==='examen' ? 'exam' : (c.tipo==='entrega' ? 'entrega' : 'ajuste');
-      return '<div class="appt '+clase+'">'+c.hora+' '+c.nombres+' '+c.apellidos[0]+'.</div>';
-    }).join('');
-    return '<div class="day-cell'+(esHoy?' today':'')+'"><div class="day-num">'+d.getDate()+(esHoy?' ★':'')+'</div>'+appts+'</div>';
-  }).join('');
-
-  grid.innerHTML = headers + celdas;
 }
 
 // ==== CONFIGURACIÓN ====
@@ -1546,10 +1626,23 @@ function previsualizarLogo(input){
   if(!file) return;
   var reader = new FileReader();
   reader.onload = function(e){
-    logoBase64Nuevo = e.target.result;
-    var img = document.getElementById('configLogoPreview');
-    img.src = logoBase64Nuevo;
-    img.style.display = '';
+    var imgTmp = new Image();
+    imgTmp.onload = function(){
+      // Redimensiona a máximo 300x300px y comprime a JPEG, para que la foto de un celular
+      // (que puede pesar varios MB) no rompa el envío al servidor.
+      var maxDim = 300;
+      var w = imgTmp.width, h = imgTmp.height;
+      if(w > h){ if(w > maxDim){ h = Math.round(h*maxDim/w); w = maxDim; } }
+      else { if(h > maxDim){ w = Math.round(w*maxDim/h); h = maxDim; } }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(imgTmp, 0, 0, w, h);
+      logoBase64Nuevo = canvas.toDataURL('image/jpeg', 0.85);
+      var img = document.getElementById('configLogoPreview');
+      img.src = logoBase64Nuevo;
+      img.style.display = '';
+    };
+    imgTmp.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -1595,6 +1688,14 @@ async function guardarConfiguracion(){
   }catch(e){ alert('❌ '+e.message); }
 }
 
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('collapsed');
+  localStorage.setItem('opticapro_sidebar_oculto', document.querySelector('.sidebar').classList.contains('collapsed') ? '1' : '0');
+}
+document.addEventListener('DOMContentLoaded', function(){
+  if(localStorage.getItem('opticapro_sidebar_oculto')==='1') document.querySelector('.sidebar').classList.add('collapsed');
+});
+
 // NAVIGATION
 function navTo(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1607,7 +1708,7 @@ function navTo(page){
   });
   document.getElementById('notifPanel').classList.remove('show');
   if(page==='pacientes')cargarPacientes();
-  if(page==='pos')cargarProductosPOS();
+  if(page==='pos'){cargarProductosPOS();var elAsesor=document.getElementById('posAsesor');if(elAsesor&&!elAsesor.value&&usuarioActual())elAsesor.value=usuarioActual().nombre;}
   if(page==='mensajes')cargarMensajes();
   if(page==='agenda')cargarCitas();
   if(page==='inventario')cargarInventario();
@@ -1666,12 +1767,14 @@ var mapaPm={ef:'efectivo',td:'tarjeta',tc:'tarjeta',ne:'nequi'};
 function selPm(m){document.querySelectorAll('.pm-btn').forEach(function(b){b.classList.remove('selected');});document.getElementById('pm-'+m).classList.add('selected');metodoPagoActual=mapaPm[m];}
 async function processPay(){
   if(!cart.length){alert('Agrega productos al carrito primero');return;}
+  var asesor = document.getElementById('posAsesor').value.trim();
   try{
     var data=await apiFetch('/api/ventas',{method:'POST',body:JSON.stringify({
       metodo_pago:metodoPagoActual,
+      asesor:asesor,
       items:cart.map(function(c){return {producto_id:c.id,cantidad:c.qty};})
     })});
-    alert('✅ Pago procesado exitosamente\nFactura: '+data.numero_factura+'\nTotal: $'+numFmt(data.total));
+    alert('✅ Pago procesado exitosamente\nFactura: '+data.numero_factura+'\nAsesor: '+(data.asesor||'—')+'\nTotal: $'+numFmt(data.total));
     cart=[];renderCart();
     cargarProductosPOS();
   }catch(e){ alert('❌ '+e.message); }
@@ -1696,6 +1799,9 @@ function switchRepTab(btn,show){
   });
   repTabActual = show.replace('rep-','');
   document.getElementById('repMes').style.display = repTabActual==='inventario' ? 'none' : '';
+  var mostrarAsesor = repTabActual==='ventas';
+  document.getElementById('repAsesor').style.display = mostrarAsesor ? '' : 'none';
+  document.getElementById('repAsesorLabel').style.display = mostrarAsesor ? '' : 'none';
   actualizarAvisoPermisoReporte();
 }
 
@@ -1704,18 +1810,32 @@ function actualizarAvisoPermisoReporte(){
   document.getElementById('repPermisoAviso').style.display = permiso ? 'none' : 'inline';
 }
 
+async function cargarAsesoresReporte(){
+  try{
+    var asesores = await apiFetch('/api/ventas/asesores/lista');
+    var sel = document.getElementById('repAsesor');
+    var actual = sel.value;
+    sel.innerHTML = '<option value="">Todos los asesores</option>' + asesores.map(function(a){
+      return '<option value="'+a+'">'+a+'</option>';
+    }).join('');
+    sel.value = actual;
+  }catch(e){ console.error(e); }
+}
+
 function inicializarPaginaReportes(){
   var mesInput = document.getElementById('repMes');
   if(mesInput && !mesInput.value){
     var hoy = new Date();
     mesInput.value = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
   }
+  cargarAsesoresReporte();
   actualizarAvisoPermisoReporte();
 }
 
 async function descargarReporte(formato){
   var mes = document.getElementById('repMes').value; // 'YYYY-MM'
-  var url = API_BASE + '/api/reportes/' + repTabActual + '?formato=' + formato + (mes ? '&mes='+mes : '');
+  var asesor = repTabActual==='ventas' ? document.getElementById('repAsesor').value : '';
+  var url = API_BASE + '/api/reportes/' + repTabActual + '?formato=' + formato + (mes ? '&mes='+mes : '') + (asesor ? '&asesor='+encodeURIComponent(asesor) : '');
   try{
     var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + getToken() } });
     if(!res.ok){

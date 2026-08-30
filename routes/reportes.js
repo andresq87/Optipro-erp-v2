@@ -8,21 +8,22 @@ const router = express.Router();
 router.use(verificarToken);
 
 function rangoDelMes(mes) {
-  // mes viene como 'YYYY-MM'; si no se envía, usa el mes actual
-  const base = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : new Date().toISOString().slice(0, 7);
+  // mes viene como 'YYYY-MM'; si no se envía, usa el mes actual (hora Colombia, UTC-5)
+  const base = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 7);
   return { desde: base + '-01', hasta: base + '-31', etiqueta: base };
 }
 
 // ==== VENTAS ====
 router.get('/ventas', requierePermiso('reportes_ventas'), async (req, res) => {
-  const { formato, mes } = req.query;
+  const { formato, mes, asesor } = req.query;
   const { desde, hasta, etiqueta } = rangoDelMes(mes);
-  const ventas = db.prepare(
-    `SELECT v.*, p.nombres, p.apellidos FROM ventas v
+  let sql = `SELECT v.*, p.nombres, p.apellidos FROM ventas v
      LEFT JOIN pacientes p ON p.id = v.paciente_id
-     WHERE date(v.creado_en) BETWEEN ? AND ?
-     ORDER BY v.creado_en ASC`
-  ).all(desde, hasta);
+     WHERE date(v.creado_en) BETWEEN ? AND ?`;
+  const params = [desde, hasta];
+  if (asesor) { sql += ' AND v.asesor = ?'; params.push(asesor); }
+  sql += ' ORDER BY v.creado_en ASC';
+  const ventas = db.prepare(sql).all(...params);
   const totalVentas = ventas.reduce((s, v) => s + v.total, 0);
 
   if (formato === 'pdf') {
@@ -37,7 +38,7 @@ router.get('/ventas', requierePermiso('reportes_ventas'), async (req, res) => {
     doc.moveDown();
     ventas.forEach(v => {
       doc.fontSize(10).text(
-        `${v.creado_en}  |  Factura ${v.numero_factura}  |  ${v.nombres ? v.nombres + ' ' + v.apellidos : 'Cliente ocasional'}  |  ${v.metodo_pago}  |  $${v.total.toLocaleString('es-CO')}`
+        `${v.creado_en}  |  Factura ${v.numero_factura}  |  ${v.nombres ? v.nombres + ' ' + v.apellidos : 'Cliente ocasional'}  |  Asesor: ${v.asesor || '—'}  |  ${v.metodo_pago}  |  $${v.total.toLocaleString('es-CO')}`
       );
     });
     doc.end();
@@ -51,6 +52,7 @@ router.get('/ventas', requierePermiso('reportes_ventas'), async (req, res) => {
       { header: 'Fecha', key: 'fecha', width: 20 },
       { header: 'Factura', key: 'factura', width: 20 },
       { header: 'Cliente', key: 'cliente', width: 25 },
+      { header: 'Asesor', key: 'asesor', width: 20 },
       { header: 'Método de pago', key: 'metodo', width: 15 },
       { header: 'Subtotal', key: 'subtotal', width: 14 },
       { header: 'IVA', key: 'iva', width: 12 },
@@ -60,6 +62,7 @@ router.get('/ventas', requierePermiso('reportes_ventas'), async (req, res) => {
     ventas.forEach(v => ws.addRow({
       fecha: v.creado_en, factura: v.numero_factura,
       cliente: v.nombres ? v.nombres + ' ' + v.apellidos : 'Cliente ocasional',
+      asesor: v.asesor || '—',
       metodo: v.metodo_pago, subtotal: v.subtotal, iva: v.iva, total: v.total, estado: v.estado_pago
     }));
     ws.addRow({});
@@ -142,7 +145,7 @@ router.get('/inventario', requierePermiso('reportes_inventario'), async (req, re
      WHERE p.activo = 1 ORDER BY c.nombre, p.nombre`
   ).all();
   const valorTotal = productos.reduce((s, p) => s + p.precio * p.stock, 0);
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10); // fecha Colombia (UTC-5)
 
   if (formato === 'pdf') {
     const doc = new PDFDocument({ margin: 40 });

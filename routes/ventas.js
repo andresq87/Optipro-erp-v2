@@ -12,9 +12,10 @@ router.get('/', (req, res) => {
 });
 
 // POST /api/ventas — crear venta con items (transacción atómica)
-// body: { paciente_id, metodo_pago, items: [{producto_id, cantidad}] }
+// body: { paciente_id, metodo_pago, asesor, items: [{producto_id, cantidad}] }
 router.post('/', (req, res) => {
   const { paciente_id, metodo_pago, items } = req.body;
+  const asesor = req.body.asesor ? String(req.body.asesor).trim() : null;
   if (!metodo_pago || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'metodo_pago e items son obligatorios' });
   }
@@ -41,9 +42,9 @@ router.post('/', (req, res) => {
     const estadoInicial = metodo_pago === 'efectivo' ? 'aprobado' : 'procesando';
 
     const infoVenta = db.prepare(
-      `INSERT INTO ventas (numero_factura, paciente_id, usuario_id, subtotal, iva, total, metodo_pago, estado_pago)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(numeroFactura, paciente_id || null, req.usuario.id, subtotal, iva, total, metodo_pago, estadoInicial);
+      `INSERT INTO ventas (numero_factura, paciente_id, usuario_id, asesor, subtotal, iva, total, metodo_pago, estado_pago)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(numeroFactura, paciente_id || null, req.usuario.id, asesor, subtotal, iva, total, metodo_pago, estadoInicial);
 
     const ventaId = infoVenta.lastInsertRowid;
 
@@ -55,11 +56,19 @@ router.post('/', (req, res) => {
     }
 
     db.exec('COMMIT');
-    res.status(201).json({ id: ventaId, numero_factura: numeroFactura, subtotal, iva, total, estado_pago: estadoInicial });
+    res.status(201).json({ id: ventaId, numero_factura: numeroFactura, subtotal, iva, total, estado_pago: estadoInicial, asesor });
   } catch (e) {
     try { db.exec('ROLLBACK'); } catch (_) {}
     res.status(400).json({ error: e.message });
   }
+});
+
+// GET /api/ventas/asesores/lista — nombres únicos de asesores registrados en ventas
+router.get('/asesores/lista', (req, res) => {
+  const rows = db.prepare(
+    "SELECT DISTINCT asesor FROM ventas WHERE asesor IS NOT NULL AND asesor != '' ORDER BY asesor"
+  ).all();
+  res.json(rows.map(r => r.asesor));
 });
 
 // GET /api/ventas/:id
