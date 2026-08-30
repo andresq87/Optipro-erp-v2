@@ -93,6 +93,16 @@ router.put('/:id', requierePermiso('inventario_editar'), (req, res) => {
   res.json(producto);
 });
 
+// DELETE /api/productos — baja lógica múltiple. body: { ids: [1,2,3] }
+router.delete('/', requierePermiso('inventario_eliminar'), (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'Debes indicar los ids a eliminar' });
+  const nombres = db.prepare(`SELECT nombre FROM productos WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  const info = db.prepare(`UPDATE productos SET activo = 0 WHERE id IN (${ids.map(() => '?').join(',')})`).run(...ids);
+  registrarAuditoria('inventario', null, req.usuario, 'eliminado_masivo', `${info.changes} productos eliminados: ${nombres.map(n => n.nombre).join(', ')}`);
+  res.json({ eliminados: info.changes });
+});
+
 // DELETE /api/productos/:id — baja lógica (solo roles autorizados)
 router.delete('/:id', requierePermiso('inventario_eliminar'), (req, res) => {
   const producto = db.prepare('SELECT nombre FROM productos WHERE id = ?').get(req.params.id);

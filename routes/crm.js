@@ -20,6 +20,28 @@ router.get('/resumen', (req, res) => {
   res.json({ totalPacientes, ventasHoy: ventasHoy.n, montoVentasHoy: ventasHoy.total, mensajesNoLeidos, citasHoy });
 });
 
+// GET /api/crm/notificaciones — notificaciones reales para la campanita: mensajes sin
+// leer, citas de hoy pendientes, y productos en stock bajo/crítico.
+router.get('/notificaciones', (req, res) => {
+  const mensajes = db.prepare(
+    "SELECT id, contacto_nombre, contenido FROM mensajes WHERE direccion='entrante' AND leido=0 ORDER BY id DESC LIMIT 15"
+  ).all();
+  const citas = db.prepare(
+    `SELECT c.id, c.hora, p.nombres, p.apellidos FROM citas c JOIN pacientes p ON p.id = c.paciente_id
+     WHERE c.fecha = date('now','-5 hours') AND c.estado NOT IN ('completada','cancelada') ORDER BY c.hora ASC LIMIT 15`
+  ).all();
+  const stock = db.prepare(
+    "SELECT id, nombre, stock, stock_minimo FROM productos WHERE stock <= stock_minimo AND activo = 1 LIMIT 15"
+  ).all();
+
+  const notificaciones = [
+    ...mensajes.map(m => ({ tipo: 'mensaje', id: m.id, texto: `${m.contacto_nombre}: ${m.contenido}`.slice(0, 90), modulo: 'mensajes' })),
+    ...citas.map(c => ({ tipo: 'cita', id: c.id, texto: `Cita hoy ${c.hora} — ${c.nombres} ${c.apellidos}`, modulo: 'agenda' })),
+    ...stock.map(p => ({ tipo: 'stock', id: p.id, texto: `Stock bajo: ${p.nombre} (${p.stock} unid.)`, modulo: 'inventario' })),
+  ];
+  res.json(notificaciones);
+});
+
 // GET /api/crm/pacientes/:id — perfil 360: datos + historial de compras + mensajes
 router.get('/pacientes/:id', (req, res) => {
   const paciente = db.prepare('SELECT * FROM pacientes WHERE id = ?').get(req.params.id);

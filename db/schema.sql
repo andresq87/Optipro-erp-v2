@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS prospectos (
   valor_estimado REAL DEFAULT 0,
   origen TEXT,
   nota TEXT,
-  etapa TEXT DEFAULT 'prospectos' CHECK(etapa IN ('prospectos','contactados','examinados','propuesta','cerrado')),
+  etapa TEXT DEFAULT 'pendiente' CHECK(etapa IN ('pendiente','contactado','cerrado','cancelado')),
   creado_en TEXT DEFAULT (datetime('now','-5 hours'))
 );
 

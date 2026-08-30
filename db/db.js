@@ -25,4 +25,49 @@ function agregarColumnaSiFalta(tabla, columna, definicion) {
 }
 agregarColumnaSiFalta('ventas', 'asesor', 'TEXT');
 
+// Migración de las etapas del CRM: el modelo cambió de un pipeline de 5 pasos
+// (prospectos/contactados/examinados/propuesta/cerrado) a 4 estados simples
+// (pendiente/contactado/cerrado/cancelado). SQLite no permite cambiar un CHECK
+// con ALTER TABLE, así que reconstruimos la tabla si todavía tiene el esquema viejo.
+function migrarEtapasProspectos() {
+  const fila = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='prospectos'").get();
+  if (!fila || !fila.sql.includes('examinados')) return; // ya está en el esquema nuevo
+  db.exec('BEGIN');
+  try {
+    db.exec(`
+      CREATE TABLE prospectos_nueva (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        valor_estimado REAL DEFAULT 0,
+        origen TEXT,
+        nota TEXT,
+        etapa TEXT DEFAULT 'pendiente' CHECK(etapa IN ('pendiente','contactado','cerrado','cancelado')),
+        creado_en TEXT DEFAULT (datetime('now','-5 hours'))
+      )
+    `);
+    db.exec(`
+      INSERT INTO prospectos_nueva (id, nombre, valor_estimado, origen, nota, etapa, creado_en)
+      SELECT id, nombre, valor_estimado, origen, nota,
+        CASE etapa
+          WHEN 'prospectos' THEN 'pendiente'
+          WHEN 'contactados' THEN 'contactado'
+          WHEN 'examinados' THEN 'contactado'
+          WHEN 'propuesta' THEN 'contactado'
+          WHEN 'cerrado' THEN 'cerrado'
+          ELSE 'pendiente'
+        END,
+        creado_en
+      FROM prospectos
+    `);
+    db.exec('DROP TABLE prospectos');
+    db.exec('ALTER TABLE prospectos_nueva RENAME TO prospectos');
+    db.exec('COMMIT');
+    console.log('✅ Migración: etapas del CRM actualizadas a pendiente/contactado/cerrado/cancelado');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    console.error('Error migrando etapas de prospectos:', e.message);
+  }
+}
+migrarEtapasProspectos();
+
 module.exports = db;

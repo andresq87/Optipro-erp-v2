@@ -32,6 +32,7 @@ const reportesRoutes = require('./routes/reportes');
 const configuracionRoutes = require('./routes/configuracion');
 const permisosRoutes = require('./routes/permisos');
 const auditoriaRoutes = require('./routes/auditoria');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.use('/api/reportes', reportesRoutes);
 app.use('/api/configuracion', configuracionRoutes);
 app.use('/api/permisos', permisosRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Sirve el front-end (public/index.html) desde el mismo servidor: así solo necesitas
 // desplegar UN servicio, sin preocuparte por CORS entre dos dominios distintos.

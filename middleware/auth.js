@@ -32,6 +32,7 @@ function soloRoles(...rolesPermitidos) {
 const ACCIONES_PERMISOS = [
   'usuarios_gestionar', 'inventario_editar', 'inventario_eliminar',
   'crm_gestionar', 'crm_eliminar',
+  'pacientes_editar', 'pacientes_eliminar',
   'reportes_ventas', 'reportes_clinico', 'reportes_inventario',
   'configuracion_editar',
 ];
@@ -42,6 +43,8 @@ const PERMISOS_POR_DEFECTO = {
   inventario_eliminar: [],
   crm_gestionar: ['vendedor'],
   crm_eliminar: [],
+  pacientes_editar: ['optometra', 'vendedor'],
+  pacientes_eliminar: [],
   reportes_ventas: ['contador', 'vendedor'],
   reportes_clinico: ['optometra'],
   reportes_inventario: ['contador'],

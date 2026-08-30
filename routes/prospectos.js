@@ -6,7 +6,7 @@ const { registrarAuditoria: registrarAuditoriaGeneral } = require('../db/auditor
 const router = express.Router();
 router.use(verificarToken);
 
-const ETAPAS = ['prospectos', 'contactados', 'examinados', 'propuesta', 'cerrado'];
+const ETAPAS = ['pendiente', 'contactado', 'cerrado', 'cancelado'];
 
 function registrarAuditoria(prospectoId, usuario, accion, detalle) {
   db.prepare(
@@ -30,14 +30,15 @@ router.get('/:id/auditoria', (req, res) => {
 });
 
 // POST /api/prospectos (solo roles autorizados)
-// body: { nombre, valor_estimado, origen, nota }
+// body: { nombre, valor_estimado, origen, nota, etapa }
 router.post('/', requierePermiso('crm_gestionar'), (req, res) => {
   const { nombre, valor_estimado, origen, nota } = req.body;
+  const etapa = ETAPAS.includes(req.body.etapa) ? req.body.etapa : 'pendiente';
   if (!nombre) return res.status(400).json({ error: 'nombre es obligatorio' });
   const info = db.prepare(
-    `INSERT INTO prospectos (nombre, valor_estimado, origen, nota) VALUES (?, ?, ?, ?)`
-  ).run(nombre, valor_estimado || 0, origen || null, nota || null);
-  registrarAuditoria(info.lastInsertRowid, req.usuario, 'creado', `Prospecto "${nombre}" creado`);
+    `INSERT INTO prospectos (nombre, valor_estimado, origen, nota, etapa) VALUES (?, ?, ?, ?, ?)`
+  ).run(nombre, valor_estimado || 0, origen || null, nota || null, etapa);
+  registrarAuditoria(info.lastInsertRowid, req.usuario, 'creado', `Prospecto "${nombre}" creado con estado "${etapa}"`);
   registrarAuditoriaGeneral('crm', info.lastInsertRowid, req.usuario, 'creado', `Prospecto "${nombre}" creado`);
   const prospecto = db.prepare('SELECT * FROM prospectos WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json(prospecto);

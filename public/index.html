@@ -250,12 +250,8 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     </div>
   </div>
   <div class="notif-panel" id="notifPanel">
-    <div class="notif-header">Notificaciones <span class="badge-status bs-bad">5 nuevas</span></div>
-    <div class="notif-item"><div class="notif-dot2"></div><div><strong>Stock bajo</strong><br>Lentes Transitions UV400 — 3 unid.</div></div>
-    <div class="notif-item"><div class="notif-dot2"></div><div><strong>Cita próxima</strong><br>María Pérez — Hoy 2:30 PM</div></div>
-    <div class="notif-item"><div class="notif-dot2"></div><div><strong>Mensaje WhatsApp</strong><br>"¿Tienen lentes polarizados?"</div></div>
-    <div class="notif-item"><div class="notif-dot2"></div><div><strong>Pedido listo</strong><br>Ref. #2847 — Carlos Ruiz</div></div>
-    <div class="notif-item"><div class="notif-dot2"></div><div><strong>Pago recibido</strong><br>$280.000 — Transferencia</div></div>
+    <div class="notif-header">Notificaciones <span class="badge-status bs-bad" id="notifBadge" style="display:none">0 nuevas</span></div>
+    <div id="notifLista"><div class="notif-item" style="cursor:default;justify-content:center;color:var(--cs)">Sin notificaciones</div></div>
   </div>
 </div>
 
@@ -278,6 +274,13 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
 <div class="main-layout">
 <!-- SIDEBAR -->
 <div class="sidebar">
+  <div class="sidebar-section" id="sidebarEmpresa" style="display:flex;align-items:center;gap:10px;padding:14px 12px;border-bottom:1px solid var(--cborder)">
+    <img id="sidebarLogo" src="" alt="Logo" style="width:38px;height:38px;object-fit:contain;border-radius:8px;display:none;background:#fff;border:1px solid var(--cborder)">
+    <div>
+      <div id="sidebarNombreEmpresa" style="font-size:13px;font-weight:700;color:var(--c1);line-height:1.2">Cargando...</div>
+      <div id="sidebarNitEmpresa" style="font-size:11px;color:var(--cs)"></div>
+    </div>
+  </div>
   <div class="sidebar-section">
     <div class="sidebar-label">Principal</div>
     <button class="nav-item active" onclick="navTo('dashboard')"><i class="ti ti-dashboard"></i> Panel de Control</button>
@@ -286,7 +289,6 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
   <div class="sidebar-section">
     <div class="sidebar-label">Clínico</div>
     <button class="nav-item" onclick="navTo('pacientes')"><i class="ti ti-users"></i> Pacientes</button>
-    <button class="nav-item" onclick="navTo('recetas')"><i class="ti ti-file-text"></i> Recetas Clínicas</button>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-label">Comercial</div>
@@ -383,13 +385,19 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
   <div class="page-header"><h1>Pacientes</h1><p>Gestión de expedientes clínicos</p></div>
   <div class="search-bar">
     <input type="text" id="buscarPaciente" placeholder="Buscar por nombre, cédula o teléfono..." oninput="cargarPacientes(this.value)">
+    <button class="btn btn-ghost" onclick="descargarPlantillaPacientes()"><i class="ti ti-file-download"></i> Descargar Plantilla</button>
+    <button class="btn btn-ghost" id="btnCargaMasivaPac" onclick="document.getElementById('inputCargaMasivaPac').click()"><i class="ti ti-upload"></i> Carga Masiva</button>
+    <input type="file" id="inputCargaMasivaPac" accept=".xlsx,.csv" style="display:none" onchange="cargarPacientesMasivo(this)">
     <button class="btn btn-primary" onclick="resetModalPaciente();openModal('modalPaciente')"><i class="ti ti-user-plus"></i> Nuevo Paciente</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px" id="barraSeleccionPac">
+    <button class="btn btn-ghost btn-sm" style="color:#e11d48;display:none" id="btnEliminarSeleccionPac" onclick="eliminarSeleccionPacientes()"><i class="ti ti-trash"></i> Eliminar seleccionados (<span id="contadorSeleccionPac">0</span>)</button>
   </div>
   <div class="card">
     <table class="tbl">
-      <thead><tr><th>Paciente</th><th>Cédula</th><th>Teléfono</th><th>EPS</th><th>Acción</th></tr></thead>
+      <thead><tr><th style="width:30px"><input type="checkbox" id="checkTodosPac" onchange="toggleTodosPacientes(this)"></th><th>Paciente</th><th>Cédula</th><th>Teléfono</th><th>EPS</th><th>Acciones</th></tr></thead>
       <tbody id="pacientesBody">
-        <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--cs)">Cargando pacientes...</td></tr>
+        <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--cs)">Cargando pacientes...</td></tr>
       </tbody>
     </table>
   </div>
@@ -480,6 +488,7 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div class="card-title" style="margin-bottom:0"><i class="ti ti-package"></i> Existencias</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="btnEliminarSeleccionInv" style="display:none;color:#e11d48" onclick="eliminarSeleccionProductos()"><i class="ti ti-trash"></i> Eliminar seleccionados (<span id="contadorSeleccionInv">0</span>)</button>
         <button class="btn btn-ghost btn-sm" onclick="descargarPlantillaProductos()"><i class="ti ti-file-download"></i> Descargar Plantilla</button>
         <button class="btn btn-ghost btn-sm" id="btnCargaMasiva" onclick="document.getElementById('inputCargaMasiva').click()"><i class="ti ti-upload"></i> Carga Masiva</button>
         <input type="file" id="inputCargaMasiva" accept=".xlsx,.csv" style="display:none" onchange="cargarProductosMasivo(this)">
@@ -487,9 +496,9 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
       </div>
     </div>
     <table class="tbl">
-      <thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Valor Unit.</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <thead><tr><th style="width:30px"><input type="checkbox" id="checkTodosInv" onchange="toggleTodosProductos(this)"></th><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Valor Unit.</th><th>Estado</th><th>Acciones</th></tr></thead>
       <tbody id="inventarioBody">
-        <tr><td colspan="7" style="text-align:center;padding:16px;color:var(--cs)">Cargando...</td></tr>
+        <tr><td colspan="8" style="text-align:center;padding:16px;color:var(--cs)">Cargando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -540,6 +549,14 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     <div class="form-grid">
       <div class="form-group"><label>Nombre</label><input id="prospNombre" placeholder="Nombre del prospecto"></div>
       <div class="form-group"><label>Valor Estimado</label><input id="prospValor" type="number" placeholder="Ej: 480000"></div>
+      <div class="form-group"><label>Estado</label>
+        <select id="prospEstado">
+          <option value="pendiente">Pendiente</option>
+          <option value="contactado">Contactado</option>
+          <option value="cerrado">Cerrado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
       <div class="form-group" style="grid-column:1/-1"><label>Origen / Nota</label><input id="prospOrigen" placeholder="Ej: Vía Instagram"></div>
     </div>
     <div class="modal-actions">
@@ -646,57 +663,21 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     <span id="repPermisoAviso" style="font-size:12px;color:var(--cs);display:none">No tienes permiso para descargar este reporte.</span>
   </div>
   <div id="rep-ventas">
-    <div class="stats-row">
-      <div class="stat-card"><div class="label">Ventas Mes</div><div class="value">$38.4M</div><div class="delta up">↑ +8%</div></div>
-      <div class="stat-card"><div class="label">Unidades</div><div class="value">214</div><div class="delta up">↑ +11%</div></div>
-      <div class="stat-card"><div class="label">Nuevos Clientes</div><div class="value">38</div><div class="delta up">↑ +5%</div></div>
-      <div class="stat-card"><div class="label">Margen Bruto</div><div class="value">62%</div><div class="delta up">↑ +2pp</div></div>
-    </div>
-    <div class="grid2">
-      <div class="card"><div class="card-title"><i class="ti ti-chart-pie"></i> Ventas por Categoría</div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-          <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Monturas</span><span style="font-weight:700">$14.2M — 37%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:37%;background:var(--c1)"></div></div></div>
-          <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Lentes Graduados</span><span style="font-weight:700">$12.8M — 33%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:33%;background:var(--c2)"></div></div></div>
-          <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Lentes de Sol</span><span style="font-weight:700">$7.4M — 19%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:19%;background:var(--c5)"></div></div></div>
-          <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Accesorios</span><span style="font-weight:700">$4.0M — 10%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:10%;background:var(--c7)"></div></div></div>
-        </div>
-      </div>
-      <div class="card"><div class="card-title"><i class="ti ti-users"></i> Top Optómetras</div>
-        <table class="tbl"><thead><tr><th>Optómetra</th><th>Exámenes</th><th>Ventas</th><th>Calif.</th></tr></thead>
-        <tbody>
-          <tr><td>Dra. Carolina Ramos</td><td>84</td><td>$18.2M</td><td>⭐ 4.9</td></tr>
-          <tr><td>Dr. Andrés Pinto</td><td>76</td><td>$15.4M</td><td>⭐ 4.8</td></tr>
-          <tr><td>Dra. Luisa Bermúdez</td><td>54</td><td>$4.8M</td><td>⭐ 4.7</td></tr>
-        </tbody></table>
-      </div>
+    <div class="card" style="text-align:center;padding:40px;color:var(--cs)">
+      <i class="ti ti-chart-bar" style="font-size:32px;display:block;margin-bottom:8px"></i>
+      Usa el filtro de mes y asesor de arriba, y descarga el reporte en Excel o PDF para ver el detalle de tus ventas reales.
     </div>
   </div>
   <div id="rep-clinico" style="display:none">
-    <div class="stats-row">
-      <div class="stat-card"><div class="label">Exámenes Mes</div><div class="value">214</div></div>
-      <div class="stat-card"><div class="label">Recetas Emitidas</div><div class="value">198</div></div>
-      <div class="stat-card"><div class="label">Controles</div><div class="value">34</div></div>
-      <div class="stat-card"><div class="label">Emergencias</div><div class="value">8</div></div>
-    </div>
-    <div class="card"><div class="card-title">Diagnósticos más frecuentes</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Miopía</span><span>42%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:42%;background:var(--c2)"></div></div></div>
-        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Astigmatismo</span><span>31%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:31%;background:var(--c1)"></div></div></div>
-        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Presbicia</span><span>18%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:18%;background:var(--c5)"></div></div></div>
-        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>Hipermetropía</span><span>9%</span></div><div class="inv-bar"><div class="inv-bar-fill" style="width:9%;background:var(--c7)"></div></div></div>
-      </div>
+    <div class="card" style="text-align:center;padding:40px;color:var(--cs)">
+      <i class="ti ti-stethoscope" style="font-size:32px;display:block;margin-bottom:8px"></i>
+      Descarga el reporte en Excel o PDF para ver las historias clínicas registradas en el periodo seleccionado.
     </div>
   </div>
   <div id="rep-inventario" style="display:none">
-    <div class="card"><div class="card-title">Rotación de Inventario — 30 días</div>
-      <table class="tbl"><thead><tr><th>Producto</th><th>Entradas</th><th>Salidas</th><th>Rotación</th><th>Valor</th></tr></thead>
-      <tbody>
-        <tr><td>Lente Monofocal CR-39</td><td>60</td><td>54</td><td><span class="badge-status bs-ok">Alta</span></td><td>$5.1M</td></tr>
-        <tr><td>Ray-Ban RB3016</td><td>20</td><td>18</td><td><span class="badge-status bs-ok">Alta</span></td><td>$7.6M</td></tr>
-        <tr><td>Transitions UV400</td><td>10</td><td>12</td><td><span class="badge-status bs-info">Media</span></td><td>$2.2M</td></tr>
-        <tr><td>Varilux X Design</td><td>8</td><td>6</td><td><span class="badge-status bs-info">Media</span></td><td>$2.7M</td></tr>
-        <tr><td>Estuche Premium</td><td>40</td><td>22</td><td><span class="badge-status bs-warn">Baja</span></td><td>$770K</td></tr>
-      </tbody></table>
+    <div class="card" style="text-align:center;padding:40px;color:var(--cs)">
+      <i class="ti ti-package" style="font-size:32px;display:block;margin-bottom:8px"></i>
+      Descarga el reporte en Excel o PDF para ver el detalle completo de tu inventario actual.
     </div>
   </div>
 </div>
@@ -766,6 +747,27 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
       </table>
     </div>
   </div>
+  <div class="card" id="zonaPeligro" style="display:none;border:1.5px solid #e11d48;margin-top:14px">
+    <div class="card-title" style="color:#e11d48"><i class="ti ti-alert-triangle"></i> Zona de Peligro</div>
+    <p style="font-size:12.5px;color:var(--cs);margin-bottom:10px">Esto borra permanentemente todos los pacientes, productos, ventas, mensajes, prospectos, citas e historias clínicas, y elimina todos los usuarios excepto las cuentas de superadmin. Úsalo solo si quieres dejar el sistema limpio para empezar a operar con datos reales. Esta acción no se puede deshacer.</p>
+    <button class="btn btn-ghost" style="color:#e11d48;border-color:#e11d48" onclick="abrirRestablecerSistema()"><i class="ti ti-trash"></i> Restablecer sistema a estado inicial</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalRestablecer">
+  <div class="modal-box" style="max-width:420px">
+    <h3 style="color:#e11d48"><i class="ti ti-alert-triangle"></i> Restablecer Sistema</h3>
+    <p style="font-size:12.5px;color:var(--cs);margin-bottom:10px">Esto borrará TODOS los pacientes, productos, ventas, mensajes, prospectos, citas, historias clínicas y usuarios (menos superadmin). No se puede deshacer.</p>
+    <p style="font-size:12.5px;margin-bottom:6px">Para confirmar, escribe exactamente: <strong>BORRAR TODO</strong></p>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="form-group"><input id="confirmacionRestablecer" placeholder="Escribe BORRAR TODO"></div>
+    </div>
+    <div id="restablecerError" style="color:#e11d48;font-size:12px;display:none;margin-bottom:8px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalRestablecer')">Cancelar</button>
+      <button class="btn btn-primary" style="background:#e11d48;border-color:#e11d48" onclick="confirmarRestablecerSistema()"><i class="ti ti-trash"></i> Sí, borrar todo</button>
+    </div>
+  </div>
 </div>
 
 <!-- AUDITORÍA (solo superadmin) -->
@@ -776,10 +778,12 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     <select id="audModulo" onchange="cargarAuditoria()">
       <option value="">Todos</option>
       <option value="usuarios">Usuarios</option>
+      <option value="pacientes">Pacientes</option>
       <option value="inventario">Inventario</option>
       <option value="crm">CRM</option>
       <option value="configuracion">Configuración</option>
       <option value="permisos">Permisos</option>
+      <option value="sistema">Sistema</option>
     </select>
     <label style="font-size:13px;font-weight:600">Desde:</label>
     <input type="date" id="audDesde" onchange="cargarAuditoria()">
@@ -820,7 +824,7 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
 
 <div class="modal-backdrop" id="modalPaciente">
   <div class="modal-box">
-    <h3><i class="ti ti-user-plus"></i> Nuevo Paciente</h3>
+    <h3 id="modalPacienteTitulo"><i class="ti ti-user-plus"></i> Nuevo Paciente</h3>
     <div class="form-grid">
       <div class="form-group"><label>Nombres</label><input id="pacNombres" placeholder="Nombres completos"></div>
       <div class="form-group"><label>Apellidos</label><input id="pacApellidos" placeholder="Apellidos completos"></div>
@@ -833,7 +837,7 @@ body{font-family:var(--font);background:var(--cbg);color:var(--ct);height:100vh;
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modalPaciente')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarPaciente()"><i class="ti ti-check"></i> Registrar Paciente</button>
+      <button class="btn btn-primary" id="btnGuardarPaciente" onclick="guardarPaciente()"><i class="ti ti-check"></i> Registrar Paciente</button>
     </div>
   </div>
 </div>
@@ -1039,13 +1043,76 @@ async function hacerLogin(){
   }
 }
 
-function inicializarDatos(){
+async function inicializarDatos(){
+  await sincronizarPermisosFrontend();
   mostrarUsuarioEnTopbar();
+  cargarBrandingSidebar();
   cargarPacientes();
   cargarProductosPOS();
   cargarMensajes();
   cargarCitas();
   cargarResumenCRM();
+  cargarNotificaciones();
+}
+
+async function cargarBrandingSidebar(){
+  try{
+    var cfg = await apiFetch('/api/configuracion');
+    document.getElementById('sidebarNombreEmpresa').textContent = cfg.nombre_comercial || 'ÓpticaPro ERP';
+    document.getElementById('sidebarNitEmpresa').textContent = cfg.nit ? 'NIT: '+cfg.nit : '';
+    if(cfg.logo_base64){
+      var img = document.getElementById('sidebarLogo');
+      img.src = cfg.logo_base64;
+      img.style.display = '';
+    }
+  }catch(e){ console.error(e); }
+}
+
+function notifsDescartadas(){
+  try{ return JSON.parse(localStorage.getItem('opticapro_notifs_descartadas')||'[]'); }catch(e){ return []; }
+}
+function descartarNotif(clave){
+  var lista = notifsDescartadas();
+  if(lista.indexOf(clave)===-1){ lista.push(clave); localStorage.setItem('opticapro_notifs_descartadas', JSON.stringify(lista)); }
+}
+
+var iconosNotif = {mensaje:'ti-message-circle', cita:'ti-calendar', stock:'ti-alert-triangle'};
+async function cargarNotificaciones(){
+  try{
+    var notifs = await apiFetch('/api/crm/notificaciones');
+    var descartadas = notifsDescartadas();
+    notifs = notifs.filter(function(n){ return n.tipo==='mensaje' || descartadas.indexOf(n.tipo+'-'+n.id)===-1; });
+    var lista = document.getElementById('notifLista');
+    var badge = document.getElementById('notifBadge');
+    if(!notifs.length){
+      lista.innerHTML = '<div class="notif-item" style="cursor:default;justify-content:center;color:var(--cs)">Sin notificaciones</div>';
+      badge.style.display = 'none';
+    }else{
+      badge.style.display = '';
+      badge.textContent = notifs.length + (notifs.length===1?' nueva':' nuevas');
+      lista.innerHTML = notifs.map(function(n){
+        return '<div class="notif-item" onclick="abrirNotificacion(\''+n.tipo+'\','+n.id+',\''+n.modulo+'\')"><i class="ti '+(iconosNotif[n.tipo]||'ti-bell')+'" style="margin-top:2px"></i><div>'+n.texto+'</div></div>';
+      }).join('');
+    }
+  }catch(e){ console.error(e); }
+}
+
+async function abrirNotificacion(tipo, id, modulo){
+  document.getElementById('notifPanel').classList.remove('show');
+  if(tipo==='mensaje'){
+    try{
+      var bandeja = await apiFetch('/api/mensajes');
+      var conv = bandeja.find(function(m){ return m.id===id; });
+      navTo('mensajes');
+      setTimeout(function(){
+        if(conv) abrirConversacion(conv.contacto_ref, conv.contacto_nombre, conv.canal);
+      }, 400);
+    }catch(e){ navTo('mensajes'); }
+  }else{
+    descartarNotif(tipo+'-'+id);
+    navTo(modulo);
+  }
+  setTimeout(cargarNotificaciones, 600); // refresca la lista (los ya atendidos no vuelven a salir)
 }
 
 function mostrarUsuarioEnTopbar(){
@@ -1108,26 +1175,90 @@ async function cargarPacientes(busqueda){
     var pacientes = await apiFetch('/api/pacientes' + qs);
     var body = document.getElementById('pacientesBody');
     if(!body) return;
-    if(!pacientes.length){ body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--cs)">Sin pacientes registrados</td></tr>'; return; }
-    body.innerHTML = pacientes.map(function(p){
-      return '<tr><td>'+p.nombres+' '+p.apellidos+'</td><td>'+p.numero_documento+'</td><td>'+(p.telefono||'—')+'</td><td>'+(p.eps||'—')+'</td>'
-        +'<td><button class="btn btn-ghost btn-sm" onclick="verReceta('+p.id+',\''+(p.nombres+' '+p.apellidos).replace(/'/g,"\\'")+'\')"><i class="ti ti-file-text"></i> Receta</button></td></tr>';
-    }).join('');
+    var puedeEditar = tienePermiso(PERMISOS_FRONT.pacientes_editar);
+    var puedeEliminar = tienePermiso(PERMISOS_FRONT.pacientes_eliminar);
+    document.getElementById('btnCargaMasivaPac').style.display = puedeEditar ? '' : 'none';
+    document.querySelector('#page-pacientes .btn-primary').style.display = puedeEditar ? '' : 'none';
+
+    if(!pacientes.length){ body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--cs)">Sin pacientes registrados</td></tr>'; }
+    else{
+      body.innerHTML = pacientes.map(function(p){
+        var nombreCompleto = (p.nombres+' '+p.apellidos).replace(/'/g,"\\'");
+        var acciones = '<button class="btn btn-ghost btn-sm" onclick="verReceta('+p.id+',\''+nombreCompleto+'\')"><i class="ti ti-file-text"></i></button> ';
+        if(puedeEditar) acciones += '<button class="btn btn-ghost btn-sm" onclick="abrirEditarPaciente('+p.id+',\''+nombreCompleto+'\')"><i class="ti ti-edit"></i></button> ';
+        if(puedeEliminar) acciones += '<button class="btn btn-ghost btn-sm" onclick="eliminarPaciente('+p.id+',\''+nombreCompleto+'\')"><i class="ti ti-trash" style="color:#e11d48"></i></button>';
+        return '<tr><td><input type="checkbox" class="chk-paciente" value="'+p.id+'" onchange="actualizarSeleccionPacientes()"></td><td>'+p.nombres+' '+p.apellidos+'</td><td>'+p.numero_documento+'</td><td>'+(p.telefono||'—')+'</td><td>'+(p.eps||'—')+'</td><td>'+acciones+'</td></tr>';
+      }).join('');
+    }
+    document.getElementById('btnEliminarSeleccionPac').style.display = puedeEliminar ? '' : 'none';
+    actualizarSeleccionPacientes();
     // refresca el selector de pacientes del modal de citas
     var sel = document.getElementById('citaPaciente');
     if(sel) sel.innerHTML = '<option value="">Selecciona un paciente...</option>' + pacientes.map(function(p){ return '<option value="'+p.id+'">'+p.nombres+' '+p.apellidos+'</option>'; }).join('');
   }catch(e){ console.error(e); }
 }
 
+function toggleTodosPacientes(chkTodos){
+  document.querySelectorAll('.chk-paciente').forEach(function(c){ c.checked = chkTodos.checked; });
+  actualizarSeleccionPacientes();
+}
+function actualizarSeleccionPacientes(){
+  var marcados = document.querySelectorAll('.chk-paciente:checked');
+  document.getElementById('contadorSeleccionPac').textContent = marcados.length;
+  var btn = document.getElementById('btnEliminarSeleccionPac');
+  if(tienePermiso(PERMISOS_FRONT.pacientes_eliminar)) btn.style.display = marcados.length ? '' : 'none';
+}
+async function eliminarSeleccionPacientes(){
+  var ids = Array.from(document.querySelectorAll('.chk-paciente:checked')).map(function(c){ return Number(c.value); });
+  if(!ids.length) return;
+  if(!confirm('¿Eliminar '+ids.length+' paciente(s) seleccionado(s)? Esta acción no se puede deshacer.')) return;
+  try{
+    await apiFetch('/api/pacientes', {method:'DELETE', body:JSON.stringify({ids:ids})});
+    cargarPacientes();
+  }catch(e){ alert('❌ '+e.message); }
+}
+
+var pacienteEditandoId = null;
 function resetModalPaciente(){
+  pacienteEditandoId = null;
+  document.getElementById('modalPacienteTitulo').innerHTML = '<i class="ti ti-user-plus"></i> Nuevo Paciente';
+  document.getElementById('btnGuardarPaciente').textContent = 'Registrar Paciente';
   document.getElementById('pacNombres').value = '';
   document.getElementById('pacApellidos').value = '';
   document.getElementById('pacTipoDoc').value = 'CC';
   document.getElementById('pacNumDoc').value = '';
+  document.getElementById('pacNumDoc').disabled = false;
   document.getElementById('pacFechaNac').value = '';
   document.getElementById('pacTelefono').value = '';
   document.getElementById('pacCorreo').value = '';
   document.getElementById('pacEps').value = '';
+}
+
+async function abrirEditarPaciente(id, nombreCompleto){
+  try{
+    var p = await apiFetch('/api/pacientes/'+id);
+    pacienteEditandoId = id;
+    document.getElementById('modalPacienteTitulo').innerHTML = '<i class="ti ti-edit"></i> Editar Paciente';
+    document.getElementById('btnGuardarPaciente').textContent = 'Guardar Cambios';
+    document.getElementById('pacNombres').value = p.nombres;
+    document.getElementById('pacApellidos').value = p.apellidos;
+    document.getElementById('pacTipoDoc').value = p.tipo_documento;
+    document.getElementById('pacNumDoc').value = p.numero_documento;
+    document.getElementById('pacNumDoc').disabled = true; // el documento no se edita, es el identificador único
+    document.getElementById('pacFechaNac').value = p.fecha_nacimiento || '';
+    document.getElementById('pacTelefono').value = p.telefono || '';
+    document.getElementById('pacCorreo').value = p.correo || '';
+    document.getElementById('pacEps').value = p.eps || '';
+    openModal('modalPaciente');
+  }catch(e){ alert('❌ '+e.message); }
+}
+
+async function eliminarPaciente(id, nombre){
+  if(!confirm('¿Eliminar al paciente "'+nombre+'"? Esta acción no se puede deshacer.')) return;
+  try{
+    await apiFetch('/api/pacientes/'+id, {method:'DELETE'});
+    cargarPacientes();
+  }catch(e){ alert('❌ '+e.message); }
 }
 
 async function guardarPaciente(){
@@ -1145,11 +1276,50 @@ async function guardarPaciente(){
     alert('Nombres, apellidos y número de documento son obligatorios'); return;
   }
   try{
-    await apiFetch('/api/pacientes', {method:'POST', body:JSON.stringify(body)});
+    if(pacienteEditandoId){
+      await apiFetch('/api/pacientes/'+pacienteEditandoId, {method:'PUT', body:JSON.stringify(body)});
+    }else{
+      await apiFetch('/api/pacientes', {method:'POST', body:JSON.stringify(body)});
+    }
     closeModal('modalPaciente');
     resetModalPaciente();
     cargarPacientes();
   }catch(e){ alert('❌ ' + e.message); }
+}
+
+async function descargarPlantillaPacientes(){
+  try{
+    var res = await fetch(API_BASE + '/api/pacientes/plantilla', { headers: { 'Authorization': 'Bearer ' + getToken() } });
+    if(!res.ok) throw new Error('No se pudo generar la plantilla');
+    var blob = await res.blob();
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'plantilla-pacientes.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }catch(e){ alert('❌ '+e.message); }
+}
+
+async function cargarPacientesMasivo(input){
+  var file = input.files[0];
+  if(!file) return;
+  var formData = new FormData();
+  formData.append('archivo', file);
+  try{
+    var res = await fetch(API_BASE + '/api/pacientes/importar', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + getToken() },
+      body: formData
+    });
+    var data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'No se pudo procesar el archivo');
+    var msg = '✅ Carga completada: '+data.creados+' pacientes creados, '+data.actualizados+' actualizados.';
+    if(data.errores && data.errores.length) msg += '\n\nFilas con error:\n'+data.errores.join('\n');
+    alert(msg);
+    input.value = '';
+    cargarPacientes();
+  }catch(e){ alert('❌ '+e.message); input.value=''; }
 }
 
 // ==== POS / PRODUCTOS ====
@@ -1238,6 +1408,8 @@ var PERMISOS_FRONT = {
   inventario_eliminar: ['superadmin'],
   crm_gestionar: ['superadmin','vendedor'],
   crm_eliminar: ['superadmin'],
+  pacientes_editar: ['superadmin','optometra','vendedor'],
+  pacientes_eliminar: ['superadmin'],
   reportes_ventas: ['superadmin','contador','vendedor'],
   reportes_clinico: ['superadmin','optometra'],
   reportes_inventario: ['superadmin','contador'],
@@ -1274,15 +1446,39 @@ async function cargarInventario(){
     document.getElementById('invValorStock').textContent = '$'+numFmt(valorTotal);
     document.getElementById('invAlertas').textContent = alertas;
 
-    if(!productos.length){ body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--cs)">Sin productos</td></tr>'; return; }
-    body.innerHTML = productos.map(function(p){
-      var acciones = '';
-      var catEsc = (p.categoria||'').replace(/'/g,"\\'");
-      if(puedeEditar) acciones += '<button class="btn btn-ghost btn-sm" onclick="abrirEditarProducto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\','+p.precio+','+p.stock_minimo+',\''+catEsc+'\')"><i class="ti ti-edit"></i></button> ';
-      if(puedeEliminar) acciones += '<button class="btn btn-ghost btn-sm" onclick="eliminarProducto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash" style="color:#e11d48"></i></button>';
-      return '<tr><td>'+p.nombre+'</td><td>'+(p.categoria||'—')+'</td><td>'+p.stock+'</td><td>'+p.stock_minimo+'</td><td>$'+numFmt(p.precio)+'</td><td>'+badgeStock(p)+'</td><td>'+acciones+'</td></tr>';
-    }).join('');
+    if(!productos.length){ body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:16px;color:var(--cs)">Sin productos</td></tr>'; }
+    else{
+      body.innerHTML = productos.map(function(p){
+        var acciones = '';
+        var catEsc = (p.categoria||'').replace(/'/g,"\\'");
+        if(puedeEditar) acciones += '<button class="btn btn-ghost btn-sm" onclick="abrirEditarProducto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\','+p.precio+','+p.stock_minimo+',\''+catEsc+'\')"><i class="ti ti-edit"></i></button> ';
+        if(puedeEliminar) acciones += '<button class="btn btn-ghost btn-sm" onclick="eliminarProducto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash" style="color:#e11d48"></i></button>';
+        return '<tr><td><input type="checkbox" class="chk-producto" value="'+p.id+'" onchange="actualizarSeleccionProductos()"></td><td>'+p.nombre+'</td><td>'+(p.categoria||'—')+'</td><td>'+p.stock+'</td><td>'+p.stock_minimo+'</td><td>$'+numFmt(p.precio)+'</td><td>'+badgeStock(p)+'</td><td>'+acciones+'</td></tr>';
+      }).join('');
+    }
+    actualizarSeleccionProductos();
   }catch(e){ console.error(e); }
+}
+
+function toggleTodosProductos(chkTodos){
+  document.querySelectorAll('.chk-producto').forEach(function(c){ c.checked = chkTodos.checked; });
+  actualizarSeleccionProductos();
+}
+function actualizarSeleccionProductos(){
+  var marcados = document.querySelectorAll('.chk-producto:checked');
+  document.getElementById('contadorSeleccionInv').textContent = marcados.length;
+  var btn = document.getElementById('btnEliminarSeleccionInv');
+  if(tienePermiso(PERMISOS_FRONT.inventario_eliminar)) btn.style.display = marcados.length ? '' : 'none';
+}
+async function eliminarSeleccionProductos(){
+  var ids = Array.from(document.querySelectorAll('.chk-producto:checked')).map(function(c){ return Number(c.value); });
+  if(!ids.length) return;
+  if(!confirm('¿Eliminar '+ids.length+' producto(s) seleccionado(s)?')) return;
+  try{
+    await apiFetch('/api/productos', {method:'DELETE', body:JSON.stringify({ids:ids})});
+    cargarInventario();
+    cargarProductosPOS();
+  }catch(e){ alert('❌ '+e.message); }
 }
 
 var productoEditandoId = null;
@@ -1384,11 +1580,13 @@ async function eliminarProducto(id, nombre){
 }
 
 // ==== AUDITORÍA GENERAL (solo superadmin) ====
-var etiquetaModuloAud = {usuarios:'Usuarios', inventario:'Inventario', crm:'CRM', configuracion:'Configuración', permisos:'Permisos'};
+var etiquetaModuloAud = {usuarios:'Usuarios', inventario:'Inventario', crm:'CRM', configuracion:'Configuración', permisos:'Permisos', pacientes:'Pacientes', sistema:'Sistema'};
 var etiquetaAccionAud = {
   creado:'Creado', editado:'Editado', eliminado:'Eliminado', movido:'Movido de etapa',
   cambio_password:'Cambio de contraseña', reseteo_password:'Reseteo de contraseña',
-  ajuste_stock:'Ajuste de stock', permiso_otorgado:'Permiso otorgado', permiso_revocado:'Permiso revocado'
+  ajuste_stock:'Ajuste de stock', permiso_otorgado:'Permiso otorgado', permiso_revocado:'Permiso revocado',
+  carga_masiva:'Carga masiva', eliminado_masivo:'Eliminación masiva', solicito_recuperacion:'Solicitó recuperar contraseña',
+  restablecimiento_total:'Restablecimiento total del sistema'
 };
 function paramsAuditoria(){
   var modulo = document.getElementById('audModulo').value;
@@ -1419,7 +1617,7 @@ async function descargarAuditoriaExcel(){
     var blob = await res.blob();
     var link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'auditoria-'+new Date().toISOString().slice(0,10)+'.xlsx';
+    link.download = 'auditoria-'+fechaColombiaAhora().toISOString().slice(0,10)+'.xlsx';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1441,6 +1639,7 @@ var etiquetaAccion = {
 async function cargarMatrizPermisos(){
   try{
     var data = await apiFetch('/api/permisos');
+    actualizarPermisosFrontDesdeMatriz(data);
     var puedeEditar = usuarioActual() && usuarioActual().rol==='superadmin';
     document.getElementById('permisosAviso').style.display = puedeEditar ? 'none' : '';
     var body = document.getElementById('permisosBody');
@@ -1453,6 +1652,22 @@ async function cargarMatrizPermisos(){
       }).join('');
       return '<tr><td>'+(etiquetaAccion[accion]||accion)+'</td><td style="text-align:center">✅</td>'+celdas+'</tr>';
     }).join('');
+  }catch(e){ console.error(e); }
+}
+
+// Mantiene PERMISOS_FRONT (usado por tienePermiso() en toda la app) sincronizado con la
+// matriz REAL que administra el superadmin, en vez de quedarse con valores fijos en el código.
+function actualizarPermisosFrontDesdeMatriz(data){
+  data.acciones.forEach(function(accion){
+    var rolesConPermiso = ['superadmin'];
+    data.roles.forEach(function(rol){ if(data.matriz[accion][rol]) rolesConPermiso.push(rol); });
+    PERMISOS_FRONT[accion] = rolesConPermiso;
+  });
+}
+async function sincronizarPermisosFrontend(){
+  try{
+    var data = await apiFetch('/api/permisos');
+    actualizarPermisosFrontDesdeMatriz(data);
   }catch(e){ console.error(e); }
 }
 
@@ -1600,11 +1815,10 @@ async function guardarReceta(){
 
 // ==== CRM / PIPELINE KANBAN ====
 var etapasCRM=[
-  {key:'prospectos',titulo:'Prospectos'},
-  {key:'contactados',titulo:'Contactados'},
-  {key:'examinados',titulo:'Examinados'},
-  {key:'propuesta',titulo:'Propuesta'},
-  {key:'cerrado',titulo:'Cerrado ✓'}
+  {key:'pendiente',titulo:'Pendiente'},
+  {key:'contactado',titulo:'Contactado'},
+  {key:'cerrado',titulo:'Cerrado ✓'},
+  {key:'cancelado',titulo:'Cancelado'}
 ];
 async function cargarPipelineCRM(){
   try{
@@ -1617,9 +1831,12 @@ async function cargarPipelineCRM(){
     cont.innerHTML = etapasCRM.map(function(et, idx){
       var items = prospectos.filter(function(p){ return p.etapa===et.key; });
       var cards = items.map(function(p){
-        var siguiente = etapasCRM[idx+1];
-        var botones = '';
-        if(siguiente && puedeGestionar) botones += '<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;margin-top:4px" onclick="moverProspecto('+p.id+',\''+siguiente.key+'\')">→ '+siguiente.titulo+'</button> ';
+        var selectorEstado = puedeGestionar ? (
+          '<select onchange="moverProspecto('+p.id+',this.value)" style="font-size:11px;padding:2px 4px;margin-top:4px;width:100%">' +
+          etapasCRM.map(function(e2){ return '<option value="'+e2.key+'"'+(e2.key===p.etapa?' selected':'')+'>'+e2.titulo+'</option>'; }).join('') +
+          '</select>'
+        ) : '';
+        var botones = selectorEstado;
         botones += '<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;margin-top:4px" onclick="verAuditoriaProspecto('+p.id+')"><i class="ti ti-history"></i></button> ';
         if(puedeGestionar) botones += '<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;margin-top:4px" onclick="abrirEditarProspecto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\','+p.valor_estimado+',\''+(p.origen||'').replace(/'/g,"\\'")+'\')"><i class="ti ti-edit"></i></button> ';
         if(puedeEliminar) botones += '<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;margin-top:4px" onclick="eliminarProspecto('+p.id+',\''+p.nombre.replace(/'/g,"\\'")+'\')"><i class="ti ti-trash" style="color:#e11d48"></i></button>';
@@ -1629,8 +1846,8 @@ async function cargarPipelineCRM(){
       return '<div class="crm-col"><div class="crm-col-title"'+(et.key==='cerrado'?' style="color:#1a7a4a"':'')+'>'+et.titulo+' <span>'+items.length+'</span></div>'+cards+'</div>';
     }).join('');
 
-    var totalProspectos = prospectos.filter(function(p){return p.etapa==='prospectos';}).length;
-    var enProceso = prospectos.filter(function(p){return ['contactados','examinados','propuesta'].indexOf(p.etapa)>-1;}).length;
+    var totalProspectos = prospectos.filter(function(p){return p.etapa==='pendiente';}).length;
+    var enProceso = prospectos.filter(function(p){return p.etapa==='contactado';}).length;
     var cerrados = prospectos.filter(function(p){return p.etapa==='cerrado';});
     var ingresos = cerrados.reduce(function(sum,p){return sum+p.valor_estimado;},0);
     document.getElementById('crmProspectos').textContent = totalProspectos;
@@ -1647,6 +1864,8 @@ function resetModalProspecto(){
   document.getElementById('btnGuardarProspecto').textContent = 'Agregar al Pipeline';
   document.getElementById('prospNombre').value = '';
   document.getElementById('prospValor').value = '';
+  document.getElementById('prospEstado').value = 'pendiente';
+  document.getElementById('prospEstado').closest('.form-group').style.display = '';
   document.getElementById('prospOrigen').value = '';
 }
 function abrirEditarProspecto(id, nombre, valor, origen){
@@ -1655,6 +1874,7 @@ function abrirEditarProspecto(id, nombre, valor, origen){
   document.getElementById('btnGuardarProspecto').textContent = 'Guardar Cambios';
   document.getElementById('prospNombre').value = nombre;
   document.getElementById('prospValor').value = valor;
+  document.getElementById('prospEstado').closest('.form-group').style.display = 'none';
   document.getElementById('prospOrigen').value = origen;
   openModal('modalProspecto');
 }
@@ -1693,6 +1913,7 @@ async function guardarProspecto(){
     valor_estimado: Number(document.getElementById('prospValor').value) || 0,
     origen: document.getElementById('prospOrigen').value.trim()
   };
+  if(!prospectoEditandoId) body.etapa = document.getElementById('prospEstado').value;
   if(!body.nombre){ alert('El nombre es obligatorio'); return; }
   try{
     if(prospectoEditandoId){
@@ -1789,7 +2010,32 @@ async function cargarConfiguracion(){
     });
     document.getElementById('btnGuardarConfig').style.display = puedeEditar ? '' : 'none';
     document.getElementById('configAvisoPermiso').style.display = puedeEditar ? 'none' : '';
+    document.getElementById('zonaPeligro').style.display = (usuarioActual() && usuarioActual().rol==='superadmin') ? '' : 'none';
   }catch(e){ console.error(e); }
+}
+
+function abrirRestablecerSistema(){
+  document.getElementById('confirmacionRestablecer').value = '';
+  document.getElementById('restablecerError').style.display = 'none';
+  openModal('modalRestablecer');
+}
+
+async function confirmarRestablecerSistema(){
+  var texto = document.getElementById('confirmacionRestablecer').value.trim();
+  var errEl = document.getElementById('restablecerError');
+  if(texto !== 'BORRAR TODO'){
+    errEl.textContent = 'Debes escribir exactamente: BORRAR TODO';
+    errEl.style.display = 'block';
+    return;
+  }
+  try{
+    await apiFetch('/api/admin/restablecer', {method:'POST', body:JSON.stringify({confirmacion:texto})});
+    closeModal('modalRestablecer');
+    alert('✅ El sistema quedó restablecido a su estado inicial.');
+    location.reload();
+  }catch(e){
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  }
 }
 
 async function guardarConfiguracion(){
@@ -1943,11 +2189,19 @@ async function cargarAsesoresReporte(){
   }catch(e){ console.error(e); }
 }
 
+// Devuelve un objeto Date cuyos métodos getUTC*() representan la hora actual de Colombia
+// (UTC-5), sin importar en qué zona horaria esté el navegador de quien use el sistema.
+// IMPORTANTE: usar siempre getUTCFullYear()/getUTCMonth()/getUTCDate() sobre el resultado,
+// nunca getFullYear()/getMonth() (esos sí usarían la zona horaria del navegador).
+function fechaColombiaAhora(){
+  return new Date(Date.now() - 5 * 3600 * 1000);
+}
+
 function inicializarPaginaReportes(){
   var mesInput = document.getElementById('repMes');
   if(mesInput && !mesInput.value){
-    var hoy = new Date();
-    mesInput.value = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+    var hoy = fechaColombiaAhora();
+    mesInput.value = hoy.getUTCFullYear()+'-'+String(hoy.getUTCMonth()+1).padStart(2,'0');
   }
   cargarAsesoresReporte();
   actualizarAvisoPermisoReporte();
